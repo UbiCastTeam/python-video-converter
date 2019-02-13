@@ -193,7 +193,7 @@ class Converter(object):
             v['src_height'] = info.video.video_height
             v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
             v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
-            v['rotate'] = info.video.metadata.get('rotate')
+            v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
             preoptlist = options['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
             # Remove empty arguments (make crashes)
             preoptlist = [arg for arg in preoptlist if arg]
