@@ -191,14 +191,14 @@ class VideoCodec(BaseCodec):
 
         if 'width' in safe:
             w = safe['width']
-            if w < 16 or w > 4000:
+            if w < 16 or w > 12000:
                 w = None
             if w:
                 w -= w % 2
 
         if 'height' in safe:
             h = safe['height']
-            if h < 16 or h > 3000:
+            if h < 16 or h > 9000:
                 h = None
             if h:
                 if sar:
