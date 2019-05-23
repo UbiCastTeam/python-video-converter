@@ -110,9 +110,11 @@ class VideoCodec(BaseCodec):
             return w, h, None
         elif w and not h:
             h = int((1.0 * w) / aspect)
+            h -= h % 2
             return w, h, None
         elif h and not w:
             w = int(aspect * h)
+            w -= w % 2
             return w, h, None
 
         # If source and target dimensions are actually the same aspect
