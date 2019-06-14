@@ -3,7 +3,7 @@
 # modify the path so that parent directory is in it
 import sys
 
-sys.path.append('../')
+sys.path.append('../')  # NOQA
 
 import random
 import string
@@ -13,6 +13,10 @@ import os
 from os.path import join as pjoin
 
 from converter import ffmpeg, formats, codecs, Converter, ConverterError
+
+
+FFMPEG_PATH = 'ffmpeg'
+FFPROBE_PATH = 'ffprobe'
 
 
 def verify_progress(p):
@@ -86,7 +90,7 @@ class TestFFMpeg(unittest.TestCase):
         self.assertRaisesSpecific(
             ffmpeg.FFMpegError, ffmpeg.FFMpeg, ffmpeg_path='/foo', ffprobe_path='/bar')
 
-        f = ffmpeg.FFMpeg(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
 
         self.assertEqual(None, f.probe('nonexistent'))
         self.assertEqual(None, f.probe('/dev/null'))
@@ -120,7 +124,7 @@ class TestFFMpeg(unittest.TestCase):
                                      'MediaStreamInfo(type=audio, codec=vorbis, channels=2, rate=48000, bitrate=80000, ENCODER=ffmpeg2theora 0.19)])')
 
     def test_ffmpeg_convert(self):
-        f = ffmpeg.FFMpeg(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
 
         def consume(fn, *args, **kwargs):
             return list(fn(*args, **kwargs))
@@ -149,7 +153,7 @@ class TestFFMpeg(unittest.TestCase):
         """
             Asserts converted test1.ogg (in path self.video_file_path) is converted correctly
         """
-        f = ffmpeg.FFMpeg(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
         info = f.probe(self.video_file_path)
         self.assertEqual('ogg', info.format.format)
         self.assertAlmostEqual(33.00, info.format.duration, places=0)
@@ -168,7 +172,7 @@ class TestFFMpeg(unittest.TestCase):
 
     def test_ffmpeg_termination(self):
         # test when ffmpeg is killed
-        f = ffmpeg.FFMpeg(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
         convert_options = [
             '-acodec', 'libvorbis', '-ab', '16k', '-ac', '1', '-ar', '11025',
             '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k']
@@ -182,7 +186,7 @@ class TestFFMpeg(unittest.TestCase):
         self.assertRaisesSpecific(ffmpeg.FFMpegConvertError, list, conv)
 
     def test_ffmpeg_thumbnail(self):
-        f = ffmpeg.FFMpeg(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
         thumb = self.shot_file_path
         thumb2 = self.shot2_file_path
 
@@ -353,7 +357,7 @@ class TestFFMpeg(unittest.TestCase):
             ['-vcodec', 'msmpeg4', '-pix_fmt', 'yuv420p'], codecs.WmvCodec().parse_options({'codec': 'wmv'}))
 
     def test_converter(self):
-        c = Converter(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
 
         self.assertRaisesSpecific(ConverterError, c.parse_options, None)
         self.assertRaisesSpecific(ConverterError, c.parse_options, {})
@@ -409,7 +413,7 @@ class TestFFMpeg(unittest.TestCase):
         self.assertTrue(verify_progress(conv))
 
     def test_converter_2pass(self):
-        c = Converter(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
         self.video_file_path = 'xx.ogg'
         options = {
             'format': 'ogg',
@@ -432,7 +436,7 @@ class TestFFMpeg(unittest.TestCase):
         self._assert_converted_video_file()
 
     def test_converter_vp8_codec(self):
-        c = Converter(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
         conv = c.convert('test1.ogg', self.video_file_path, {
             'format': 'webm',
             'video':
@@ -447,7 +451,7 @@ class TestFFMpeg(unittest.TestCase):
         self.assertTrue(verify_progress(conv))
 
     def test_probe_audio_poster(self):
-        c = Converter(ffmpeg_path="ffmpeg-3.2.10", ffprobe_path="ffprobe-3.2.10")
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
 
         info = c.probe('test.mp3', posters_as_video=True)
         self.assertNotEqual(None, info.video)
