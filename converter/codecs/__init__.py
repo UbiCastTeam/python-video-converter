@@ -15,7 +15,7 @@ class MetaBaseCodec(type):
                 codec_list = codec_lists.setdefault(
                     sub_class.codec_type, list())
                 if hasattr(sub_class, 'formats_supported') and len(formats_supported) == 0:
-                    format_supported = formats_supported.insert(0, sub_class.formats_supported)
+                    formats_supported.insert(0, sub_class.formats_supported)
                 for base in bases:
                     if base in codec_list and not base.codec_name:
                         codec_list.remove(base)
@@ -57,12 +57,12 @@ class BaseCodec(with_metaclass(MetaBaseCodec, object)):
                 typ = self.encoder_options[k]
                 try:
                     safe[k] = typ(v)
-                except:
+                except Exception:
                     pass
 
         return safe
 
 
-from converter.codecs.audio import *
-from converter.codecs.subtitle import *
-from converter.codecs.video import *
+from converter.codecs.audio import *  # NOQA
+from converter.codecs.subtitle import *  # NOQA
+from converter.codecs.video import *  # NOQA

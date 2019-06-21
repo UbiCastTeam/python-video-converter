@@ -30,18 +30,15 @@ class SubtitleCodec(BaseCodec):
         safe = self.safe_options(opt)
 
         if 'forced' in safe:
-            f = safe['forced']
-            if f < 0 or f > 1:
+            if safe['forced'] < 0 or safe['forced'] > 1:
                 del safe['forced']
 
         if 'default' in safe:
-            d = safe['default']
-            if d < 0 or d > 1:
+            if safe['default'] < 0 or safe['default'] > 1:
                 del safe['default']
 
         if 'language' in safe:
-            l = safe['language']
-            if len(l) > 3:
+            if len(safe['language']) > 3:
                 del safe['language']
 
         safe = self._codec_specific_parse_options(safe)

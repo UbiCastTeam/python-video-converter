@@ -151,14 +151,14 @@ class MediaStreamInfo(object):
     def parse_float(val, default=0.0):
         try:
             return float(val)
-        except:
+        except Exception:
             return default
 
     @staticmethod
     def parse_int(val, default=0):
         try:
             return int(val)
-        except:
+        except Exception:
             return default
 
     def parse_ffprobe(self, key, val):
@@ -246,8 +246,9 @@ class MediaStreamInfo(object):
                         in self.metadata.items()]
         metadata_str = ', '.join(metadata_str)
         if self.type == 'audio':
-            d = 'type=%s, codec=%s, channels=%d, rate=%.0f' % (self.type,
-                self.codec, self.audio_channels, self.audio_samplerate)
+            d = 'type=%s, codec=%s, channels=%d, rate=%.0f' % (
+                self.type, self.codec, self.audio_channels,
+                self.audio_samplerate)
         elif self.type == 'video':
             d = 'type=%s, codec=%s, width=%d, height=%d, fps=%.1f' % (
                 self.type, self.codec, self.video_width, self.video_height,

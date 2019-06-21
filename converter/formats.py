@@ -58,7 +58,7 @@ class BaseFormat(with_metaclass(MetaBaseFormat, object)):
                 typ = self.format_options[k]
                 try:
                     safe[k] = typ(v)
-                except:
+                except Exception:
                     pass
         return safe
 
