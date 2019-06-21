@@ -197,23 +197,26 @@ class Converter(object):
             preoptlist = options['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
             # Remove empty arguments (make crashes)
             preoptlist = [arg for arg in preoptlist if arg]
+            skinoptlist = options['video'].get('ffmpeg_skin_opts', '').split(' ')
+            # Remove empty arguments (make crashes)
+            skinoptlist = [arg for arg in skinoptlist if arg]
         if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
             raise ConverterError('Zero-length media')
 
         if twopass:
             optlist1 = self.parse_options(options, 1)
             for timecode in self.ffmpeg.convert(infile, outfile, optlist1,
-                                                timeout=timeout, preopts=preoptlist):
+                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield float(timecode) / info.format.duration
 
             optlist2 = self.parse_options(options, 2)
             for timecode in self.ffmpeg.convert(infile, outfile, optlist2,
-                                                timeout=timeout, preopts=preoptlist):
+                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield 0.5 + float(timecode) / info.format.duration
         else:
             optlist = self.parse_options(options, twopass)
             for timecode in self.ffmpeg.convert(infile, outfile, optlist,
-                                                timeout=timeout, preopts=preoptlist):
+                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield float(timecode) / info.format.duration
 
     def segment(self, infile, working_directory, output_file, output_directory, options, timeout=10):
