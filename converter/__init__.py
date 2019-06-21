@@ -186,6 +186,7 @@ class Converter(object):
             raise ConverterError('Source file has no audio or video streams')
 
         preoptlist = None
+        skinoptlist = None
         if info.video and 'video' in options:
             options = options.copy()
             v = options['video'] = options['video'].copy()
