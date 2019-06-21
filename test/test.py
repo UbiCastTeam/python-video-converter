@@ -391,15 +391,16 @@ class TestFFMpeg(unittest.TestCase):
         c.thumbnail('test1.ogg', 10, f)
         self.assertTrue(os.path.exists(f))
         os.unlink(f)
-
         conv = c.convert('test1.ogg', self.video_file_path, {
             'format': 'ogg',
             'video':
             {'codec': 'theora',
-             'width': 160,
-             'height': 120,
+             'width': 320,
+             'height': 240,
              'fps': 15,
-             'bitrate': 300},
+             'bitrate': 300,
+             'ffmpeg_skin_opts': '-i logo.png -filter_complex [1]scale=151:138[wm];[0][wm]overlay=10:10'
+             },
             'audio': {'codec': 'vorbis', 'channels': 1, 'bitrate': 32}
         })
 
