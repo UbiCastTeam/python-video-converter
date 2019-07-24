@@ -11,41 +11,46 @@ on top of it.
 
 ## Quickstart
 
-    from converter import Converter
-    c = Converter()
+``` python
+from converter import Converter
+c = Converter()
 
-    info = c.probe('test1.ogg')
+info = c.probe('test1.ogg')
 
-    conv = c.convert('test1.ogg', '/tmp/output.mkv', {
-        'format': 'mkv',
-        'audio': {
-            'codec': 'mp3',
-            'samplerate': 11025,
-            'channels': 2
-        },
-        'video': {
-            'codec': 'h264',
-            'width': 720,
-            'height': 400,
-            'fps': 15
-        }})
+conv = c.convert('test1.ogg', '/tmp/output.mkv', {
+    'format': 'mkv',
+    'audio': {
+        'codec': 'mp3',
+        'samplerate': 11025,
+        'channels': 2
+    },
+    'video': {
+        'codec': 'h264',
+        'width': 720,
+        'height': 400,
+        'fps': 15
+    }})
 
-    for timecode in conv:
-        print("Converting (%f) ...\r" % timecode)
-
+for timecode in conv:
+    print("Converting (%f) ...\r" % timecode)
+```
 
 ## Documentation and tests
 
 There's a fair amount of documentation in `doc/` directory.
 To generate it from Sphinx sources, use:
 
-    python setup.py doc
+``` sh
+python setup.py doc
+```
 
 and then visit `doc/_build/html/index.html`.
 
 To run the automated tests:
 
-    python setup.py test
+``` sh
+python setup.py test
+```
 
 The test suite assumes you already have the required `ffmpeg` and `ffprobe`
 tools installed on your system.
@@ -54,7 +59,9 @@ tools installed on your system.
 
 To install the package:
 
-    python setup.py install
+``` sh
+python setup.py install
+```
 
 Note that this only installs the Python Video Converter library. The `ffmpeg`
 and `ffprobe` tools should be installed on the system separately, with all the
