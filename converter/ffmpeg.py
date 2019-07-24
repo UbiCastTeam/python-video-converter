@@ -165,6 +165,8 @@ class MediaStreamInfo(object):
         """
         Parse raw ffprobe output (key=value).
         """
+        if val == 'N/A':
+            return
 
         if key == 'index':
             self.index = self.parse_int(val)
