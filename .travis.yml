@@ -1,16 +1,18 @@
+os: linux
+dist: bionic
+
 language: python
 python:
-  - "2.6"
-  - "2.7"
-  - "3.2"
-  - "3.3"
+  - "3.6"
+  - "3.7"
 
 before_install:
- - sudo sh ./test/install-ffmpeg.sh
+ - apt-get -y -qq update
+ - apt-get -y -qq install ffmpeg
 
 script:
- - python setup.py test
+ - python3 setup.py test
 
 notifications:
   email:
-    - tomaz+travis@tomaz.me
+    - dev-celerity+travis@ubicast.eu

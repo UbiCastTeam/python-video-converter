@@ -60,11 +60,6 @@ Note that this only installs the Python Video Converter library. The `ffmpeg`
 and `ffprobe` tools should be installed on the system separately, with all the
 codec and format support you require.
 
-If you need to compile and install the tools manually, have a look at the
-example script `test/install-ffmpeg.sh` (used for automated test suite). It may
-or may not be useful for your requirements, so don't just blindly run it -
-check that it does what you need first.
-
 ## Authors and Copyright
 
 Copyright &copy; 2011-2013. Python Video Converter contributors. See the
