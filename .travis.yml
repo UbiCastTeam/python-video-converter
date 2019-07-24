@@ -7,8 +7,8 @@ python:
   - "3.7"
 
 before_install:
- - apt-get -y -qq update
- - apt-get -y -qq install ffmpeg
+ - sudo apt-get -y -qq update
+ - sudo apt-get -y -qq install ffmpeg
 
 script:
  - python3 setup.py test
