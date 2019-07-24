@@ -1,6 +1,6 @@
 # Video Converter
 
-[![Build Status](https://travis-ci.org/senko/python-video-converter.png?branch=master)](https://travis-ci.org/senko/python-video-converter)
+[![Build Status](https://travis-ci.com/UbiCastTeam/python-video-converter.svg?branch=master)](https://travis-ci.com/UbiCastTeam/python-video-converter)
 
 Video Converter is a Python module for converting video files from one format
 and codec to another.
