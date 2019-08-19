@@ -268,60 +268,6 @@ class Converter(object):
             yield int((100.0 * timecode) / info.format.duration)
         os.chdir(current_directory)
 
-    def segment_stream(self, infile, working_directory, output_file, output_directory, options, stream_index=1, timeout=10):
-        """
-        Segment a specific input stream into fragments
-        """
-        if not os.path.exists(infile):
-            raise ConverterError("Source file doesn't exist: " + infile)
-
-        info = self.ffmpeg.probe(infile)
-        if info is None:
-            raise ConverterError("Can't get information about source file")
-
-        if not info.video and not info.audio:
-            raise ConverterError('Source file has no audio or video streams')
-
-        try:
-            stream_info = info.streams[stream_index]
-        except IndexError:
-            raise ConverterError('Source does not have any stream on index %i' % stream_index)
-
-        stream_type = stream_info.type
-
-        if stream_type not in ('audio', 'video'):
-            raise ConverterError('Unhandled stream type: %s, expect audio or video only' % stream_type)
-
-        try:
-            os.makedirs(os.path.join(working_directory, output_directory))
-        except Exception as e:
-            if e.errno != errno.EEXIST:
-                raise e
-        current_directory = os.getcwd()
-        os.chdir(working_directory)
-
-        optlist = [
-            "-flags", "-global_header",
-            "-f", "segment", "-segment_time", "1",
-            "-segment_list", output_file,
-            "-segment_list_type", "m3u8",
-            "-segment_format", "mpegts",
-            "-segment_list_entry_prefix", "%s/" % output_directory,
-            "-map", "0",
-            "-vcodec", "copy",
-            "-acodec", "copy"
-        ]
-
-        # various optims
-        if "video" in stream_info.type and "h264" in codec:
-            optlist.insert(-4, "-vbsf")
-            optlist.insert(-4, "h264_mp4toannexb")
-
-        outfile = "%s/%s%%05d.ts" % (stream_type, output_directory)
-        for timecode in self.ffmpeg.convert(infile, outfile, optlist, timeout=timeout):
-            yield int((100.0 * timecode) / info.format.duration)
-        os.chdir(current_directory)
-
     def probe(self, fname, posters_as_video=True):
         """
         Examine the media file.
