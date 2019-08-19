@@ -294,3 +294,9 @@ class Converter(object):
         See the documentation of converter.FFMpeg.thumbnails() for details.
         """
         return self.ffmpeg.thumbnails(fname, option_list)
+
+    def append_stream(*args, **kwargs):
+        return self.ffmpeg.append_stream(*args, **kwargs)
+
+    def delete_stream(*args, **kwargs):
+        return self.ffmpeg.delete_stream(*args, **kwargs)

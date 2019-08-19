@@ -615,3 +615,46 @@ class FFMpeg(object):
         stderr_data.decode(console_encoding, "replace")
         if any(not os.path.exists(option[1]) for option in option_list):
             raise FFMpegError('Error creating thumbnail: %s' % stderr_data)
+
+    def append_stream(self, source_path, input_path, input_index, output_file=None):
+        """
+        Append stream will append a stream from `input_path` to `source_path`.
+        The `input_index` will determine wich stream to copy. If not `output_file`
+        is given, the `source_path` will be edited in place.
+        """
+        command = [self.ffmpeg_path]
+        command.update([
+            '-i', source_name,
+            '-i', input_name,
+            '-map 0', # take all the streams from the source
+            '-map 1:%i' % input_index,
+            '-c copy',
+            output_file or source_name
+        ])
+        p = self._spawn()
+        _, stderr_data = p.communicate()
+        if stderr_data == '':
+            raise FFMpegError('Error while calling ffmpeg binary')
+        stderr_data.decode(console_encoding, "replace")
+        if any(not os.path.exists(option[1]) for option in option_list):
+            raise FFMpegError('Error when appending stream: %s' % stderr_data)
+
+    def delete_stream(self, source_path, stream_index, output_file=None):
+        """
+        Delete stream will remove a specific stream from the `source_path`
+        identified by his `source_index`.
+        """
+        command = [self.ffmpeg_path]
+        command.update([
+            '-i', source_name,
+            '-map -0:%i',
+            '-c copy',
+            output_file or source_path
+        ])
+        p = self._spawn()
+        _, stderr_data = p.communicate()
+        if stderr_data == '':
+            raise FFMpegError('Error while calling ffmpeg binary')
+        stderr_data.decode(console_encoding, "replace")
+        if any(not os.path.exists(option[1]) for option in option_list):
+            raise FFMpegError('Error when deleting stream: %s' % stderr_data)
