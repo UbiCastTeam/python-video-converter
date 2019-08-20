@@ -295,8 +295,5 @@ class Converter(object):
         """
         return self.ffmpeg.thumbnails(fname, option_list)
 
-    def append_stream(*args, **kwargs):
-        return self.ffmpeg.append_stream(*args, **kwargs)
-
-    def delete_stream(*args, **kwargs):
-        return self.ffmpeg.delete_stream(*args, **kwargs)
+    def mix(self, *args, **kwargs):
+        return self.ffmpeg.mix(*args, **kwargs)
