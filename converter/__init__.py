@@ -115,11 +115,10 @@ class Converter(object):
             raise ConverterError('Unknown subtitle codec error')
 
         if 'map' in opt:
-            m = opt['map']
-            if not isinstance(m, int):
-                raise ConverterError('map needs to be int')
-            else:
-                format_options.extend(['-map', str(m)])
+            opt.setdefault('maps', []).extends(['-map', str(opt['map'])])
+
+        for input_map in opt.get('maps', []):
+            format_options.extend(['-map', str(input_map)])
 
         # aggregate all options
         optlist = audio_options + video_options + subtitle_options + \
