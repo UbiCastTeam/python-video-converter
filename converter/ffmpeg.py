@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 console_encoding = locale.getdefaultlocale()[1] or 'UTF-8'
 
 
+class ArgumentError(Exception):
+    pass
+
+
 class FFMpegError(Exception):
     pass
 
@@ -617,16 +621,52 @@ class FFMpeg(object):
         if any(not os.path.exists(option[1]) for option in option_list):
             raise FFMpegError('Error creating thumbnail: %s' % stderr_data)
 
-    def mix(self, inputs, mappings, output, metadatas=None):
+    def mix(
+        self, inputs, inputs_maps, output,
+        stream_metadata_tags=None, copy_metadata_tags=False
+    ):
+
+        if len(inputs) != len(inputs_maps):
+            raise ArgumentError(
+                'inputs_maps must have the same length then inputs')
+
+        stream_metadata_tags = stream_metadata_tags or []
+
         command = [self.ffmpeg_path, '-y']
+        command_options = ['-codec', 'copy']
+        if copy_metadata_tags:
+            command_options.extend(['-movflags', 'use_metadata_tags'])
+
         maps_commands = []
-        for file_index, input_file, input_mappings in zip(count(), inputs, mappings):
-            command.extend(['-i', input_file])
-            for input_mapping in input_mappings:
-                maps_commands.extend(['-map', '%i:%s' % (file_index, input_mapping)])
-        command.extend(maps_commands + ['-codec', 'copy', output])
+        input_commands = []
+
+        zip_iterator = zip(count(), inputs, inputs_maps)
+
+        for file_index, input_file, input_mappings in zip_iterator:
+            input_commands.extend(['-i', input_file])
+            for input_maps in input_mappings:
+                maps_commands.extend([
+                    '-map',
+                    '%i:%s' % (file_index, input_maps)
+                ])
+
+        command.extend(input_commands + command_options + maps_commands)
+
+        # Warning! `metadata_tags` must have the same size then
+        # the output streams. Otherwise, ffmpeg process will crash
+        # as we can't check this earlier.
+        metadata_tags = []
+        for stream_index, stream_metadatas in enumerate(stream_metadata_tags):
+            for meta_name, meta_value in stream_metadatas.items():
+                metadata_tags.extend([
+                        '-metadata:s:%i' % stream_index,
+                        '%s=%s' % (meta_name, meta_value)
+                    ])
+
+        command.extend(metadata_tags + [output])
 
         p = self._spawn(command)
         _, stderr_data = p.communicate()
         if p.returncode != 0:
-            raise FFMpegError('Error while calling ffmpeg binary, retcode %i' % p.returncode)
+            raise FFMpegError(
+                'Error while calling ffmpeg binary, retcode %i' % p.returncode)
