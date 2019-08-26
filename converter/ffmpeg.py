@@ -632,7 +632,7 @@ class FFMpeg(object):
 
         stream_metadata_tags = stream_metadata_tags or []
 
-        command = [self.ffmpeg_path, '-y']
+        command = [self.ffmpeg_path, '-y', '-nostdin']
         command_options = ['-codec', 'copy']
         if copy_metadata_tags:
             command_options.extend(['-movflags', 'use_metadata_tags'])
@@ -650,14 +650,14 @@ class FFMpeg(object):
                     '%i:%s' % (file_index, input_maps)
                 ])
 
-        command.extend(input_commands + command_options + maps_commands)
+        command.extend(input_commands + maps_commands + command_options)
 
         # Warning! `metadata_tags` must have the same size then
         # the output streams. Otherwise, ffmpeg process will crash
         # as we can't check this earlier.
         metadata_tags = []
         for stream_index, stream_metadatas in enumerate(stream_metadata_tags):
-            for meta_name, meta_value in stream_metadatas.items():
+            for meta_name, meta_value in stream_metadatas:
                 metadata_tags.extend([
                         '-metadata:s:%i' % stream_index,
                         '%s=%s' % (meta_name, meta_value)
@@ -666,7 +666,7 @@ class FFMpeg(object):
         command.extend(metadata_tags + [output])
 
         p = self._spawn(command)
-        _, stderr_data = p.communicate()
+        stdout_data, stderr_data = p.communicate()
         if p.returncode != 0:
             raise FFMpegError(
                 'Error while calling ffmpeg binary, retcode %i' % p.returncode)
