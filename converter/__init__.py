@@ -4,6 +4,7 @@ import errno
 import logging
 import math
 import os
+import warnings
 from converter.codecs import codec_lists
 from converter.formats import format_list
 from converter.ffmpeg import FFMpeg
@@ -256,7 +257,7 @@ class Converter(object):
             else:
                 codec = info.streams[1].codec
         except Exception as e:
-            print("could not determinate encoder: %s", e)
+            warnings.warn("Could not determinate encoder", RuntimeWarning)
             codec = ""
         if "h264" in codec:
             optlist.insert(-4, "-vbsf")
