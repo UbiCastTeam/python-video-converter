@@ -4,6 +4,7 @@ import errno
 import logging
 import math
 import os
+import warnings
 from converter.codecs import codec_lists
 from converter.formats import format_list
 from converter.ffmpeg import FFMpeg
@@ -115,11 +116,10 @@ class Converter(object):
             raise ConverterError('Unknown subtitle codec error')
 
         if 'map' in opt:
-            m = opt['map']
-            if not isinstance(m, int):
-                raise ConverterError('map needs to be int')
-            else:
-                format_options.extend(['-map', str(m)])
+            opt.setdefault('maps', []).extends(['-map', str(opt['map'])])
+
+        for input_map in opt.get('maps', []):
+            format_options.extend(['-map', str(input_map)])
 
         # aggregate all options
         optlist = audio_options + video_options + subtitle_options + \
@@ -221,6 +221,9 @@ class Converter(object):
                 yield float(timecode) / info.format.duration
 
     def segment(self, infile, working_directory, output_file, output_directory, options, timeout=10):
+        """
+        Segment the first video stream muxed with the first audio track
+        """
         if not os.path.exists(infile):
             raise ConverterError("Source file doesn't exist: " + infile)
 
@@ -254,7 +257,7 @@ class Converter(object):
             else:
                 codec = info.streams[1].codec
         except Exception as e:
-            print("could not determinate encoder: %s", e)
+            warnings.warn("Could not determinate encoder", RuntimeWarning)
             codec = ""
         if "h264" in codec:
             optlist.insert(-4, "-vbsf")
@@ -291,3 +294,6 @@ class Converter(object):
         See the documentation of converter.FFMpeg.thumbnails() for details.
         """
         return self.ffmpeg.thumbnails(fname, option_list)
+
+    def mix(self, *args, **kwargs):
+        return self.ffmpeg.mix(*args, **kwargs)
