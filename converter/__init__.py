@@ -241,12 +241,7 @@ class Converter(object):
                 raise e
         current_directory = os.getcwd()
         os.chdir(working_directory)
-        if options.get("audio"):
-            segment_time = max(1, math.ceil(options['audio'].get("start_time", 1)))
-        else:
-            segment_time = 1
-        if segment_time > 1:
-            logger.warning("Warning : HLS fragments size will be upper than 1 seconds probably that audio channel start at %s seconds." % (segment_time))
+        segment_time = max(options.get('segment_time', 1), math.ceil(options.get('audio', {}).get('start_time', 1)))
         optlist = [
             "-flags", "-global_header", "-f", "segment", "-segment_time", "%s" % segment_time, "-segment_list", output_file, "-segment_list_type", "m3u8", "-segment_format", "mpegts",
             "-segment_list_entry_prefix", "%s/" % output_directory, "-map", "0", "-map", "-0:d", "-vcodec", "copy", "-acodec", "copy"
