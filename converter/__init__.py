@@ -256,7 +256,7 @@ class Converter(object):
                 codec = info.streams[0].codec
             else:
                 codec = info.streams[1].codec
-        except Exception as e:
+        except Exception:
             warnings.warn("Could not determinate encoder", RuntimeWarning)
             codec = ""
         if "h264" in codec:
