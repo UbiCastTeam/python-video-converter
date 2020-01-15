@@ -19,12 +19,8 @@ class ArgumentError(Exception):
 
 
 class FFMpegError(Exception):
-    pass
 
-
-class FFMpegConvertError(Exception):
-
-    def __init__(self, message, cmd, output, details=None, pid=0):
+    def __init__(self, message, cmd=None, output=None, details=None, pid=None):
         """
         @param    message: Error message.
         @type     message: C{str}
@@ -32,13 +28,13 @@ class FFMpegConvertError(Exception):
         @param    cmd: Full command string used to spawn ffmpeg.
         @type     cmd: C{str}
 
-        @param    output: Full stdout output from the ffmpeg command.
+        @param    output: Full output from the ffmpeg command.
         @type     output: C{str}
 
         @param    details: Optional error details.
         @type     details: C{str}
         """
-        super(FFMpegConvertError, self).__init__(message)
+        super(FFMpegError, self).__init__(message)
 
         self.cmd = cmd
         self.output = output
@@ -46,12 +42,16 @@ class FFMpegConvertError(Exception):
         self.pid = pid
 
     def __repr__(self):
-        error = self.details if self.details else self.args[0]
-        return ('<FFMpegConvertError error="%s", pid=%s, cmd="%s">' %
-                (error, self.pid, self.cmd))
+        error = self.details if self.details else self.message
+        return ('<%s error="%s", pid=%s, cmd="%s">' %
+                (self.__class__.__name__, error, self.pid, self.cmd))
 
     def __str__(self):
         return self.__repr__()
+
+
+class FFMpegConvertError(FFMpegError):
+    pass
 
 
 class MediaFormatInfo(object):
@@ -396,10 +396,10 @@ class FFMpeg(object):
             raise FFMpegError("ffprobe binary not found: " + self.ffprobe_path)
 
     @staticmethod
-    def _spawn(cmds):
+    def _spawn(cmds, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE):
         logger.debug('Spawning ffmpeg with command: ' + ' '.join(cmds))
-        return Popen(cmds, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                     close_fds=True)
+        return Popen(cmds, shell=shell, stdin=stdin, stdout=stdout,
+                     stderr=stderr, close_fds=True)
 
     def probe(self, fname, posters_as_video=True):
         """
@@ -428,9 +428,9 @@ class FFMpeg(object):
 
         info = MediaInfo(posters_as_video)
 
-        p = self._spawn([self.ffprobe_path,
+        p = self._spawn([self.ffprobe_path, '-hide_banner',
                          '-show_format', '-show_streams', fname])
-        stdout_data, _ = p.communicate()
+        stdout_data, stderr_data = p.communicate()
         stdout_data = stdout_data.decode(console_encoding, "replace")
         info.parse_ffprobe(stdout_data)
 
@@ -463,7 +463,7 @@ class FFMpeg(object):
         if not os.path.exists(infile):
             raise FFMpegError("Input file doesn't exist: " + infile)
 
-        cmds = [self.ffmpeg_path]
+        cmds = [self.ffmpeg_path, '-hide_banner']
         if preopts:
             cmds.extend(preopts)
         cmds.extend(['-i', infile])
@@ -475,15 +475,15 @@ class FFMpeg(object):
 
         try:
             p = self._spawn(cmds)
-        except OSError:
-            raise FFMpegError('Error while calling ffmpeg binary')
+        except OSError as e:
+            raise FFMpegError('Error while calling ffmpeg binary', details=e)
 
         if timeout:
             def on_sigvtalrm(*_):
                 signal.signal(signal.SIGVTALRM, signal.SIG_DFL)
                 if p.poll() is None:
                     p.kill()
-                raise Exception('timed out while waiting for ffmpeg')
+                raise FFMpegError('timed out while waiting for ffmpeg')
 
             signal.signal(signal.SIGVTALRM, on_sigvtalrm)
 
@@ -539,7 +539,7 @@ class FFMpeg(object):
         p.communicate()  # wait for process to exit
 
         if total_output == '':
-            raise FFMpegError('Error while calling ffmpeg binary')
+            raise FFMpegError('Error while calling ffmpeg binary, no output.')
 
         cmd = ' '.join(cmds)
         if '\n' in total_output:
@@ -595,7 +595,7 @@ class FFMpeg(object):
 
         output_seeking = len(option_list) > 1 or output_seeking
 
-        cmds = [self.ffmpeg_path]
+        cmds = [self.ffmpeg_path, '-hide_banner']
         if not output_seeking:
             cmds.extend(['-ss', str(option_list[0][0])])
         cmds.extend(['-i', fname, '-y', '-an'])
@@ -632,7 +632,7 @@ class FFMpeg(object):
 
         stream_metadata_tags = stream_metadata_tags or []
 
-        command = [self.ffmpeg_path, '-y', '-nostdin']
+        command = [self.ffmpeg_path, '-hide_banner', '-y', '-nostdin']
         command_options = ['-codec', 'copy']
         if copy_metadata_tags:
             command_options.extend(['-movflags', 'use_metadata_tags'])
@@ -659,9 +659,9 @@ class FFMpeg(object):
         for stream_index, stream_metadatas in enumerate(stream_metadata_tags):
             for meta_name, meta_value in stream_metadatas:
                 metadata_tags.extend([
-                        '-metadata:s:%i' % stream_index,
-                        '%s=%s' % (meta_name, meta_value)
-                    ])
+                    '-metadata:s:%i' % stream_index,
+                    '"%s=%s"' % (meta_name, meta_value)
+                ])
 
         command.extend(metadata_tags + [output])
 
@@ -669,4 +669,5 @@ class FFMpeg(object):
         stdout_data, stderr_data = p.communicate()
         if p.returncode != 0:
             raise FFMpegError(
-                'Error while calling ffmpeg binary, retcode %i' % p.returncode)
+                'Error while calling ffmpeg binary, retcode %i' % p.returncode,
+                output=stderr_data.decode(console_encoding, 'replace'))
