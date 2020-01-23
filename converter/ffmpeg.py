@@ -623,7 +623,7 @@ class FFMpeg(object):
 
     def mix(
         self, inputs, inputs_maps, output,
-        stream_metadata_tags=None, copy_metadata_tags=False
+        stream_metadata_tags=None, copy_metadata_tags=False, duration=None
     ):
 
         if len(inputs) != len(inputs_maps):
@@ -636,6 +636,8 @@ class FFMpeg(object):
         command_options = ['-codec', 'copy']
         if copy_metadata_tags:
             command_options.extend(['-movflags', 'use_metadata_tags'])
+        if duration:
+            command_options.extend(['-t', str(round(duration, 3))])
 
         maps_commands = []
         input_commands = []
