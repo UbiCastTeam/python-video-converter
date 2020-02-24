@@ -39,6 +39,7 @@ class FFMpegError(Exception):
         self.cmd = cmd
         self.output = output
         self.details = details
+        self.message = message
         self.pid = pid
 
     def __repr__(self):
