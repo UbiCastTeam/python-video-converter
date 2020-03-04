@@ -132,7 +132,7 @@ class Converter(object):
 
         return optlist
 
-    def convert(self, infile, outfile, options, twopass=False, timeout=10):
+    def convert(self, infile, outfiles, options, preoptlist=None, skinoptlist=None, twopass=False, timeout=10):
         """
         Convert media file (infile) according to specified options, and save it to outfile. For two-pass encoding, specify the pass (1 or 2) in the twopass parameter.
 
@@ -172,7 +172,16 @@ class Converter(object):
         >>> for timecode in conv:
         ...   pass # can be used to inform the user about the progress
         """
-        if not isinstance(options, dict):
+        if isinstance(outfiles, str):
+            outfiles = [outfiles]
+
+        if isinstance(options, dict):
+            options = [options]
+
+        if len(outfiles) != len(options):
+            raise ConverterError('Options are not provided for all the outputs')
+
+        if not isinstance(options, list):
             raise ConverterError('Invalid options')
 
         if not os.path.exists(infile):
@@ -185,8 +194,6 @@ class Converter(object):
         if not info.video and not info.audio:
             raise ConverterError('Source file has no audio or video streams')
 
-        preoptlist = None
-        skinoptlist = None
         if info.video and 'video' in options:
             options = options.copy()
             v = options['video'] = options['video'].copy()
@@ -195,28 +202,34 @@ class Converter(object):
             v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
             v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
             v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
-            preoptlist = options['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
-            # Remove empty arguments (make crashes)
-            preoptlist = [arg for arg in preoptlist if arg]
-            skinoptlist = options['video'].get('ffmpeg_skin_opts', '').split(' ')
-            # Remove empty arguments (make crashes)
-            skinoptlist = [arg for arg in skinoptlist if arg]
+            if not preoptlist:
+                preoptlist = options['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
+                preoptlist = [arg for arg in preoptlist if arg]
+            if not skinoptlist:
+                skinoptlist = options['video'].get('ffmpeg_skin_opts', '').split(' ')
+                skinoptlist = [arg for arg in skinoptlist if arg]
         if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
             raise ConverterError('Zero-length media')
 
         if twopass:
-            optlist1 = self.parse_options(options, 1)
-            for timecode in self.ffmpeg.convert(infile, outfile, optlist1,
+            optlist1 = []
+            for output_options in options:
+                optlist1.append(self.parse_options(output_options, 1))
+            for timecode in self.ffmpeg.convert(infile, outfiles, optlist1,
                                                 timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield float(timecode) / info.format.duration
 
-            optlist2 = self.parse_options(options, 2)
-            for timecode in self.ffmpeg.convert(infile, outfile, optlist2,
+            optlist2 = []
+            for output_options in options:
+                optlist1.append(self.parse_options(output_options, 2))
+            for timecode in self.ffmpeg.convert(infile, outfiles, optlist2,
                                                 timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield 0.5 + float(timecode) / info.format.duration
         else:
-            optlist = self.parse_options(options, twopass)
-            for timecode in self.ffmpeg.convert(infile, outfile, optlist,
+            optlist = []
+            for output_options in options:
+                optlist.append(self.parse_options(output_options, twopass))
+            for timecode in self.ffmpeg.convert(infile, outfiles, optlist,
                                                 timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield float(timecode) / info.format.duration
 
@@ -264,7 +277,7 @@ class Converter(object):
             optlist.insert(-4, "h264_mp4toannexb")
 
         outfile = "%s/media%%05d.ts" % output_directory
-        for timecode in self.ffmpeg.convert(infile, outfile, optlist, timeout=timeout):
+        for timecode in self.ffmpeg.convert(infile, [outfile], [optlist], timeout=timeout):
             yield int((100.0 * timecode) / info.format.duration)
         os.chdir(current_directory)
 

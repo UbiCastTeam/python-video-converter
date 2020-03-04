@@ -440,7 +440,7 @@ class FFMpeg(object):
 
         return info
 
-    def convert(self, infile, outfile, opts, timeout=10, preopts=None, skinopts=None):
+    def convert(self, infile, outfiles, opts, timeout=10, preopts=None, skinopts=None):
         """
         Convert the source media (infile) according to specified options
         (a list of ffmpeg switches as strings) and save it to outfile.
@@ -467,13 +467,14 @@ class FFMpeg(object):
         cmds = [self.ffmpeg_path, '-hide_banner']
         if preopts:
             cmds.extend(preopts)
-        cmds.extend(['-i', infile])
+        cmds.extend(['-y', '-i', infile])
         if skinopts:
             cmds.extend(skinopts)
         cmds.extend(['-max_muxing_queue_size', '500'])
-        cmds.extend(opts)
-        cmds.extend(['-y', outfile])
 
+        for outfile, outopts in zip(outfiles, opts):
+            cmds.extend(outopts)
+            cmds.append(outfile)
         try:
             p = self._spawn(cmds)
         except OSError as e:
