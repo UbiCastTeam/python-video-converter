@@ -244,7 +244,7 @@ class Converter(object):
         segment_time = max(options.get('segment_time', 1), math.ceil(options.get('audio', {}).get('start_time', 1)))
 
         optlist = [
-            "-flags", "-global_header", "-f", "segment", "-segment_time", "%s" % segment_time, "-segment_list", output_file, "-segment_list_type", "m3u8", "-segment_format", "mpegts",
+            "-muxdelay 0", "-flags", "-global_header", "-f", "segment", "-segment_time", "%s" % segment_time, "-segment_list", output_file, "-segment_list_type", "m3u8", "-segment_format", "mpegts",
             "-segment_list_entry_prefix", "%s/" % output_directory
         ]
         for input_map in (options.get('maps') or ['0']):
