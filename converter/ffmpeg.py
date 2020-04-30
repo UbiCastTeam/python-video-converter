@@ -440,7 +440,7 @@ class FFMpeg(object):
 
         return info
 
-    def convert(self, infile, outfiles, opts, timeout=10, preopts=None, skinopts=None):
+    def convert(self, infiles, outfiles, options, timeout=10, preopts=None, skinopts=None):
         """
         Convert the source media (infile) according to specified options
         (a list of ffmpeg switches as strings) and save it to outfile.
@@ -461,20 +461,28 @@ class FFMpeg(object):
         ...    pass  # can be used to inform the user about conversion progress
 
         """
-        if not os.path.exists(infile):
-            raise FFMpegError("Input file doesn't exist: " + infile)
-
         cmds = [self.ffmpeg_path, '-hide_banner']
-        if preopts:
-            cmds.extend(preopts)
-        cmds.extend(['-y', '-i', infile])
-        if skinopts:
-            cmds.extend(skinopts)
-        cmds.extend(['-max_muxing_queue_size', '500'])
+        for index, infile in enumerate(infiles):
+            if not os.path.exists(infile):
+                raise FFMpegError("Input file doesn't exist: " + infile)
 
-        for outfile, outopts in zip(outfiles, opts):
-            cmds.extend(outopts)
-            cmds.append(outfile)
+            if preopts:
+                cmds.extend(preopts)
+            cmds.extend(['-y', '-i', infile])
+            if skinopts:
+                cmds.extend(skinopts)
+            cmds.extend(['-max_muxing_queue_size', '500'])
+            if isinstance(outfiles[index], list):
+                outfile = outfiles[index]
+            else:
+                outfile = outfiles
+            if isinstance(options[index], list) and len(infiles) > 1:
+                opts = [options[index]]
+            else:
+                opts = options
+            for outputfile, outopts in zip(outfile, opts):
+                cmds.extend(outopts)
+                cmds.append(outputfile)
         try:
             p = self._spawn(cmds)
         except OSError as e:
@@ -551,10 +559,10 @@ class FFMpeg(object):
                 # Received signal 15: terminating.
                 raise FFMpegConvertError(
                     line.split(':')[0], cmd, total_output, pid=p.pid)
-            if line.startswith(infile + ': '):
-                err = line[len(infile) + 2:]
-                raise FFMpegConvertError('Encoding error', cmd, total_output,
-                                         err, pid=p.pid)
+            for infile in infiles:
+                if line.startswith(infile + ': '):
+                    err = line[len(infile) + 2:]
+                    raise FFMpegConvertError('Encoding error', cmd, total_output, err, pid=p.pid)
             if line.startswith('Error while '):
                 raise FFMpegConvertError('Encoding error', cmd, total_output,
                                          line, pid=p.pid)
