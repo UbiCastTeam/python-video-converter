@@ -172,8 +172,6 @@ class Converter(object):
         >>> for timecode in conv:
         ...   pass # can be used to inform the user about the progress
         """
-        if isinstance(infile, str):
-            infile = [infile]
 
         if isinstance(outfiles, str):
             outfiles = [outfiles]
@@ -187,10 +185,10 @@ class Converter(object):
         if not isinstance(options, list):
             raise ConverterError('Invalid options')
 
-        if not os.path.exists(infile[0]):
+        if not os.path.exists(infile):
             raise ConverterError("Source file doesn't exist: " + infile[0])
 
-        info = self.ffmpeg.probe(infile[0])
+        info = self.ffmpeg.probe(infile)
         if info is None:
             raise ConverterError("Can't get information about source file")
 
@@ -236,15 +234,10 @@ class Converter(object):
                                                 timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
                 yield float(timecode) / info.format.duration
 
-    def segment(self, infiles, working_directories, output_files, output_directories, options, timeout=10):
+    def segment(self, infile, working_directory, output_files, output_directories, options, timeout=10):
         """
         Segment the first video stream muxed with the first audio track
         """
-        if isinstance(infiles, str):
-            infiles = [infiles]
-
-        if isinstance(working_directories, str):
-            working_directories = [working_directories]
 
         if isinstance(output_files, str):
             output_files = [output_files]
@@ -255,12 +248,13 @@ class Converter(object):
         if isinstance(options, str):
             options = [options]
 
-        if len(infiles) != len(working_directories) != len(output_files) != len(output_directories) != len(options):
+        if len(output_files) != len(output_directories) != len(options):
             raise ConverterError('Input file or directories or options are not provided for all the outputs')
+
         outputs_options = list()
         outputs_ts_files = list()
-        for index, infile in enumerate(infiles):
-            output_ts_files = list()
+
+        for index, output_file in enumerate(output_files):
             if not os.path.exists(infile):
                 raise ConverterError("Source file doesn't exist: " + infile)
 
@@ -270,7 +264,6 @@ class Converter(object):
 
             if not info.video and not info.audio:
                 raise ConverterError('Source file has no audio or video streams')
-            working_directory = working_directories[index]
             output_directory = output_directories[index]
             output_file = output_files[index]
             try:
@@ -299,11 +292,10 @@ class Converter(object):
                 optlist.insert(-4, "h264_mp4toannexb")
             outfile = "%s/media%%05d.ts" % output_directory
             outputs_options.append(optlist)
-            output_ts_files.append(outfile)
-            outputs_ts_files.append(output_ts_files)
+            outputs_ts_files.append(outfile)
         current_directory = os.getcwd()
         os.chdir(working_directory)
-        for timecode in self.ffmpeg.convert(infiles, outputs_ts_files, outputs_options, timeout=timeout):
+        for timecode in self.ffmpeg.convert(infile, outputs_ts_files, outputs_options, timeout=timeout):
             yield int((100.0 * timecode) / info.format.duration)
         os.chdir(current_directory)
 
