@@ -200,7 +200,6 @@ class MediaStreamInfo(object):
             self.start_time = self.parse_float(val)
         elif key == 'DISPOSITION:attached_pic':
             self.attached_pic = self.parse_int(val)
-
         if key.startswith('TAG:'):
             key = key.split('TAG:')[1]
             value = val
@@ -254,13 +253,13 @@ class MediaStreamInfo(object):
                         in self.metadata.items()]
         metadata_str = ', '.join(metadata_str)
         if self.type == 'audio':
-            d = 'type=%s, codec=%s, channels=%d, rate=%.0f' % (
+            d = 'type=%s, codec=%s, channels=%d, rate=%.0f, start_time=%f' % (
                 self.type, self.codec, self.audio_channels,
-                self.audio_samplerate)
+                self.audio_samplerate, self.start_time)
         elif self.type == 'video':
-            d = 'type=%s, codec=%s, width=%d, height=%d, fps=%.1f' % (
+            d = 'type=%s, codec=%s, width=%d, height=%d, fps=%.1f, start_time=%f' % (
                 self.type, self.codec, self.video_width, self.video_height,
-                self.video_fps)
+                self.video_fps, self.start_time)
         elif self.type == 'subtitle':
             d = 'type=%s, codec=%s' % (self.type, self.codec)
         if self.bitrate is not None:
@@ -483,6 +482,7 @@ class FFMpeg(object):
             for outputfile, outopts in zip(outfile, opts):
                 cmds.extend(outopts)
                 cmds.append(outputfile)
+
         try:
             p = self._spawn(cmds)
         except OSError as e:
