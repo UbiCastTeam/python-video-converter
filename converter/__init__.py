@@ -253,7 +253,6 @@ class Converter(object):
 
         outputs_options = list()
         outputs_ts_files = list()
-
         for index, output_file in enumerate(output_files):
             if not os.path.exists(infile):
                 raise ConverterError("Source file doesn't exist: " + infile)
@@ -276,16 +275,34 @@ class Converter(object):
                 "-flags", "-global_header", "-f", "segment", "-segment_time", "%s" % segment_time, "-segment_list", output_file, "-segment_list_type", "m3u8", "-segment_format", "mpegts",
                 "-segment_list_entry_prefix", "%s/" % output_directory
             ]
-            for input_map in (options[index].get('maps') or ['0']):
-                optlist.extend(['-map', str(input_map)])
-            optlist.extend(["-vcodec", "copy", "-acodec", "copy"])
             try:
-                if "video" in info.streams[0].type:
-                    codec = info.streams[0].codec
+                if options[index].get('maps'):
+                    for input_map in (options[index].get('maps') or ['0']):
+                        optlist.extend(['-map', str(input_map)])
+                    stream_selected = None
+                    if input_map.count(":") > 1:
+                        input_stream = input_map.split(":")
+                        count = 0
+                        for stream in info.streams:
+                            if (input_stream[1] == 'a' and 'audio' in stream.type) or (input_stream[1] == 'v' and 'video' in stream.type):
+                                if count == int(input_stream[2]):
+                                    stream_selected = stream
+                                    break
+                                else:
+                                    count += 1
+                    else:
+                        track_id = int(input_map[-1])
+                        stream_selected = info.streams[track_id]
+                    codec = stream_selected.codec
+                    codec_type = '-vcodec' if 'video' in stream_selected.type else '-acodec'
+                    optlist.extend([codec_type, 'copy'])
                 else:
-                    codec = info.streams[1].codec
+                    input_map = ['0']
+                    track_id = 0 if "video" in info.streams[0].type else 1
+                    codec = info.streams[track_id].codec
+                    optlist.extend(['-vcodec', 'copy', '-acodec', 'copy'])
             except Exception:
-                warnings.warn("Could not determinate encoder", RuntimeWarning)
+                warnings.warn('Could not determinate encoder', RuntimeWarning)
                 codec = ""
             if "h264" in codec:
                 optlist.insert(-4, "-vbsf")
