@@ -19,7 +19,7 @@ class ArgumentError(Exception):
 
 class FFMpegError(Exception):
 
-    def __init__(self, message, cmd=None, output=None, details=None, pid=None):
+    def __init__(self, message, cmd=None, details=None, pid=None):
         """
         @param    message: Error message.
         @type     message: C{str}
@@ -27,24 +27,19 @@ class FFMpegError(Exception):
         @param    cmd: Full command string used to spawn ffmpeg.
         @type     cmd: C{str}
 
-        @param    output: Full output from the ffmpeg command.
-        @type     output: C{str}
-
         @param    details: Optional error details.
         @type     details: C{str}
         """
         super(FFMpegError, self).__init__(message)
 
         self.cmd = cmd
-        self.output = output
         self.details = details
         self.message = message
         self.pid = pid
 
     def __repr__(self):
-        error = self.details if self.details else self.message
-        return ('<%s error="%s", pid=%s, cmd="%s">' %
-                (self.__class__.__name__, error, self.pid, self.cmd))
+        return ('<%s error="%s", details="%s", pid=%s, cmd="%s">' %
+                (self.__class__.__name__, self.message, self.details, self.pid, self.cmd))
 
     def __str__(self):
         return self.__repr__()
@@ -430,7 +425,7 @@ class FFMpeg(object):
         p = self._spawn([self.ffprobe_path, '-hide_banner',
                          '-show_format', '-show_streams', '-show_error', uri])
         stdout_data, stderr_data = p.communicate()
-        stdout_data = stdout_data.decode(console_encoding, "replace")
+        stdout_data = stdout_data.decode(console_encoding, 'replace')
         info.parse_ffprobe(stdout_data)
 
         if not info.format.format and len(info.streams) == 0:
@@ -521,7 +516,7 @@ class FFMpeg(object):
             if not ret:
                 break
 
-            ret = ret.decode(console_encoding, "replace")
+            ret = ret.decode(console_encoding, 'replace')
             total_output += ret
             buf += ret
             if '\r' in buf:
@@ -555,16 +550,17 @@ class FFMpeg(object):
                     line.split(':')[0], cmd, total_output, pid=p.pid)
             if line.startswith(infile + ': '):
                 err = line[len(infile) + 2:]
-                raise FFMpegConvertError('Encoding error', cmd, total_output, err, pid=p.pid)
+                raise FFMpegConvertError(
+                    'Encoding error: %s' % err, cmd, total_output, pid=p.pid)
             if line.startswith('Error while '):
-                raise FFMpegConvertError('Encoding error', cmd, total_output,
-                                         line, pid=p.pid)
+                raise FFMpegConvertError(
+                    'Encoding error: %s' % line, cmd, total_output, pid=p.pid)
             if not yielded:
-                raise FFMpegConvertError('Unknown ffmpeg error', cmd,
-                                         total_output, line, pid=p.pid)
+                raise FFMpegConvertError(
+                    'Unknown ffmpeg error', cmd, total_output, pid=p.pid)
         if p.returncode != 0:
-            raise FFMpegConvertError('Exited with code %d' % p.returncode, cmd,
-                                     total_output, pid=p.pid)
+            raise FFMpegConvertError(
+                'Exited with code %d' % p.returncode, cmd, total_output, pid=p.pid)
 
     def thumbnail(self, uri, time, outfile,
                   size=None, quality=DEFAULT_JPEG_QUALITY):
@@ -625,9 +621,9 @@ class FFMpeg(object):
         _, stderr_data = p.communicate()
         if stderr_data == '':
             raise FFMpegError('Error while calling ffmpeg binary')
-        stderr_data.decode(console_encoding, "replace")
+        stderr_data = stderr_data.decode(console_encoding, 'replace')
         if any(not os.path.exists(option[1]) for option in option_list):
-            raise FFMpegError('Error creating thumbnail: %s' % stderr_data)
+            raise FFMpegError('Error creating thumbnail.', details=stderr_data)
 
     def mix(
         self, inputs, inputs_maps, output,
@@ -680,4 +676,4 @@ class FFMpeg(object):
         if p.returncode != 0:
             raise FFMpegError(
                 'Error while calling ffmpeg binary, retcode %i' % p.returncode,
-                output=stderr_data.decode(console_encoding, 'replace'))
+                details=stderr_data.decode(console_encoding, 'replace'))
