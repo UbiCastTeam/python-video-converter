@@ -401,7 +401,7 @@ class FFMpeg(object):
         return Popen(cmds, shell=shell, stdin=stdin, stdout=stdout,
                      stderr=stderr, close_fds=True)
 
-    def probe(self, fname, posters_as_video=True):
+    def probe(self, uri, posters_as_video=True):
         """
         Examine the media file and determine its format and media streams.
         Returns the MediaInfo object, or None if the specified file is
@@ -429,7 +429,7 @@ class FFMpeg(object):
         info = MediaInfo(posters_as_video)
 
         p = self._spawn([self.ffprobe_path, '-hide_banner',
-                         '-show_format', '-show_streams', fname])
+                         '-show_format', '-show_streams', '-show_error', uri])
         stdout_data, stderr_data = p.communicate()
         stdout_data = stdout_data.decode(console_encoding, "replace")
         info.parse_ffprobe(stdout_data)
@@ -567,10 +567,11 @@ class FFMpeg(object):
             raise FFMpegConvertError('Exited with code %d' % p.returncode, cmd,
                                      total_output, pid=p.pid)
 
-    def thumbnail(self, fname, time, outfile,
+    def thumbnail(self, uri, time, outfile,
                   size=None, quality=DEFAULT_JPEG_QUALITY):
         """
         Create a thumbnal of media file, and store it to outfile
+        @param uri: file path or url
         @param time: time point (in seconds) (float or int)
         @param size: Size, if specified, is WxH of the desired thumbnail.
             If not specified, the video resolution is used.
@@ -579,11 +580,12 @@ class FFMpeg(object):
 
         >>> FFMpeg().thumbnail('test1.ogg', 5, '/tmp/shot.png', '320x240')
         """
-        return self.thumbnails(fname, [(time, outfile, size, quality)])
+        return self.thumbnails(uri, [(time, outfile, size, quality)])
 
-    def thumbnails(self, fname, option_list, output_seeking=False):
+    def thumbnails(self, uri, option_list, output_seeking=False):
         """
         Create one or more thumbnails of video.
+        @param uri: file path or url
         @param option_list: a list of tuples like:
             (time, outfile, size=None, quality=DEFAULT_JPEG_QUALITY)
             see documentation of `converter.FFMpeg.thumbnail()` for details.
@@ -594,15 +596,18 @@ class FFMpeg(object):
         >>> FFMpeg().thumbnails('test1.ogg', [(5, '/tmp/shot.png', '320x240'),
         >>>                                   (10, '/tmp/shot2.png', None, 5)])
         """
-        if not os.path.exists(fname):
-            raise IOError('No such file: ' + fname)
+        if '://' not in uri and not os.path.exists(uri):
+            raise IOError('No such file: ' + uri)
 
         output_seeking = len(option_list) > 1 or output_seeking
 
         cmds = [self.ffmpeg_path, '-hide_banner']
+        if '://' in uri:
+            # add request timeout (2 minutes in microseconds)
+            cmds.extend(['-timeout', '120000000'])
         if not output_seeking:
             cmds.extend(['-ss', str(option_list[0][0])])
-        cmds.extend(['-i', fname, '-y', '-an'])
+        cmds.extend(['-i', uri, '-y', '-an'])
         for thumb in option_list:
             if len(thumb) > 2 and thumb[2]:
                 cmds.extend(['-s', str(thumb[2])])
