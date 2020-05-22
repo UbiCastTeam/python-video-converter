@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 
-# modify the path so that parent directory is in it
-import sys
-
-sys.path.append('../')  # NOQA
-
-import random
-import string
-import shutil
-import unittest
 import os
-from os.path import join as pjoin
+import random
+import shutil
+import string
+import sys
+import unittest
 
-from converter import ffmpeg, formats, codecs, Converter, ConverterError
+# modify the path so that parent directory is in it
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(current_dir))
+
+from converter import ffmpeg, formats, codecs, Converter, ConverterError  # NOQA
 
 
 FFMPEG_PATH = 'ffmpeg'
@@ -40,18 +39,18 @@ def verify_progress(p):
 class TestFFMpeg(unittest.TestCase):
 
     def setUp(self):
-        current_dir = os.path.abspath(os.path.dirname(__file__))
+        os.chdir(current_dir)
         temp_name = ''.join(random.choice(string.ascii_uppercase + string.digits)
                             for _ in range(20))
 
-        self.temp_dir = pjoin(current_dir, temp_name)
+        self.temp_dir = os.path.join(current_dir, temp_name)
 
         if not os.path.exists(self.temp_dir):
             os.makedirs(self.temp_dir)
 
         self.transcodings = [
             {
-                "path": pjoin(self.temp_dir, "output.ogg"),
+                "path": os.path.join(self.temp_dir, "output.ogg"),
                 "audio_codec": "libvorbis",
                 "audio_channels": 1,
                 "audio_bitrate": "16k",
@@ -63,11 +62,11 @@ class TestFFMpeg(unittest.TestCase):
                 "video_bitrate": "128k"
             }
         ]
-        self.video_file_path = pjoin(self.temp_dir, 'output.ogg')
-        self.audio_file_path = pjoin(self.temp_dir, 'output.mp3')
-        self.shot_file_path = pjoin(self.temp_dir, 'shot.png')
-        self.shot2_file_path = pjoin(self.temp_dir, 'shot2.png')
-        self.shot3_file_path = pjoin(self.temp_dir, 'shot3.png')
+        self.video_file_path = os.path.join(self.temp_dir, 'output.ogg')
+        self.audio_file_path = os.path.join(self.temp_dir, 'output.mp3')
+        self.shot_file_path = os.path.join(self.temp_dir, 'shot.png')
+        self.shot2_file_path = os.path.join(self.temp_dir, 'shot2.png')
+        self.shot3_file_path = os.path.join(self.temp_dir, 'shot3.png')
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)

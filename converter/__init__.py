@@ -2,12 +2,11 @@
 
 import errno
 import logging
-import math
 import os
 import warnings
 from converter.codecs import codec_lists
-from converter.formats import format_list
 from converter.ffmpeg import FFMpeg
+from converter.formats import format_list
 
 logger = logging.getLogger(__name__)
 

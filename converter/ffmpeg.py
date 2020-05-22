@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-import os.path
+from itertools import count
+from subprocess import Popen, PIPE
+import locale
+import logging
 import os
 import re
 import signal
-from subprocess import Popen, PIPE
-import logging
-import locale
-from itertools import count
 
 logger = logging.getLogger(__name__)
 
