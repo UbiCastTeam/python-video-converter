@@ -194,22 +194,23 @@ class Converter(object):
         if not info.video and not info.audio:
             raise ConverterError('Source file has no audio or video streams')
 
-        if info.video and 'video' in options:
-            options = options.copy()
-            v = options['video'] = options['video'].copy()
-            v['src_width'] = info.video.video_width
-            v['src_height'] = info.video.video_height
-            v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
-            v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
-            v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
-            if not preoptlist:
-                preoptlist = options['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
-                preoptlist = [arg for arg in preoptlist if arg]
-            if not skinoptlist:
-                skinoptlist = options['video'].get('ffmpeg_skin_opts', '').split(' ')
-                skinoptlist = [arg for arg in skinoptlist if arg]
-        if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
-            raise ConverterError('Zero-length media')
+        for index in range(0, len(options)):
+            if info.video and 'video' in options[0]:
+                options[index] = options[index].copy()
+                v = options[index]['video'] = options[index]['video'].copy()
+                v['src_width'] = info.video.video_width
+                v['src_height'] = info.video.video_height
+                v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
+                v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
+                v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
+                if not preoptlist:
+                    preoptlist = options[index]['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
+                    preoptlist = [arg for arg in preoptlist if arg]
+                if not skinoptlist:
+                    skinoptlist = options[index]['video'].get('ffmpeg_skin_opts', '').split(' ')
+                    skinoptlist = [arg for arg in skinoptlist if arg]
+            if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
+                raise ConverterError('Zero-length media')
 
         if twopass:
             optlist1 = []
