@@ -131,7 +131,7 @@ class Converter(object):
 
         return optlist
 
-    def convert(self, infile, outfiles, options, preoptlist=None, skinoptlist=None, twopass=False, timeout=10):
+    def convert(self, infile, outfiles, options, twopass=False, timeout=10):
         """
         Convert media file (infile) according to specified options, and save it to outfile. For two-pass encoding, specify the pass (1 or 2) in the twopass parameter.
 
@@ -194,8 +194,10 @@ class Converter(object):
         if not info.video and not info.audio:
             raise ConverterError('Source file has no audio or video streams')
 
+        skinopts = list()
+        preopts = list()
         for index in range(0, len(options)):
-            if info.video and 'video' in options[0]:
+            if info.video and 'video' in options[index]:
                 options[index] = options[index].copy()
                 v = options[index]['video'] = options[index]['video'].copy()
                 v['src_width'] = info.video.video_width
@@ -203,12 +205,14 @@ class Converter(object):
                 v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
                 v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
                 v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
-                if not preoptlist:
-                    preoptlist = options[index]['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
-                    preoptlist = [arg for arg in preoptlist if arg]
-                if not skinoptlist:
-                    skinoptlist = options[index]['video'].get('ffmpeg_skin_opts', '').split(' ')
-                    skinoptlist = [arg for arg in skinoptlist if arg]
+                preoptlist = options[index]['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
+                # Remove empty arguments (make crashes)
+                preoptlist = [arg for arg in preoptlist if arg]
+                preopts.append(preoptlist)
+                skinoptlist = options[index]['video'].get('ffmpeg_skin_opts', '').split(' ')
+                # Remove empty arguments (make crashes)
+                skinoptlist = [arg for arg in skinoptlist if arg]
+                skinopts.append(skinoptlist)
             if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
                 raise ConverterError('Zero-length media')
 
@@ -217,21 +221,21 @@ class Converter(object):
             for output_options in options:
                 optlist1.append(self.parse_options(output_options, 1))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist1,
-                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
+                                                timeout=timeout, preopts=preopts, skinopts=skinopts):
                 yield float(timecode) / info.format.duration
 
             optlist2 = []
             for output_options in options:
                 optlist1.append(self.parse_options(output_options, 2))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist2,
-                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
+                                                timeout=timeout, preopts=preopts, skinopts=skinopts):
                 yield 0.5 + float(timecode) / info.format.duration
         else:
             optlist = []
             for output_options in options:
                 optlist.append(self.parse_options(output_options, twopass))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist,
-                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
+                                                timeout=timeout, preopts=preopts, skinopts=skinopts):
                 yield float(timecode) / info.format.duration
 
     def segment(self, infile, working_directory, output_files, output_directories, options, timeout=10):

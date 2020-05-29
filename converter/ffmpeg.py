@@ -458,20 +458,19 @@ class FFMpeg(object):
 
         if not os.path.exists(infile):
             raise FFMpegError("Input file doesn't exist: " + infile)
-
         if preopts:
-            cmds.extend(preopts)
-
+            for preopt in preopts:
+                if preopt:
+                    cmds.extend(preopts)
         cmds.extend(['-y', '-i', infile])
-
-        if skinopts:
-            cmds.extend(skinopts)
-
-        cmds.extend(['-max_muxing_queue_size', '500'])
+        index = 0
         for outputfile, outopts in zip(outfiles, opts):
+            if skinopts and skinopts[index]:
+                cmds.extend(skinopts[index])
+            cmds.extend(['-max_muxing_queue_size', '500'])
             cmds.extend(outopts)
             cmds.append(outputfile)
-
+            index += 1
         try:
             p = self._spawn(cmds)
         except OSError as e:
