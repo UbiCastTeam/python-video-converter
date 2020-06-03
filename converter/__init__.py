@@ -120,6 +120,9 @@ class Converter(object):
         for input_map in opt.get('maps', []):
             format_options.extend(['-map', str(input_map)])
 
+        if 'map_chapters' in opt:
+            format_options.extend(['-map_chapters', str(opt['map_chapters'])])
+
         # aggregate all options
         optlist = audio_options + video_options + subtitle_options + \
             format_options
