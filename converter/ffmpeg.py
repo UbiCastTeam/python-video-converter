@@ -249,11 +249,11 @@ class MediaStreamInfo(object):
         if self.type == 'audio':
             d = 'type=%s, codec=%s, channels=%d, rate=%.0f, start_time=%f' % (
                 self.type, self.codec, self.audio_channels,
-                self.audio_samplerate, self.start_time)
+                self.audio_samplerate, self.start_time or 0)
         elif self.type == 'video':
             d = 'type=%s, codec=%s, width=%d, height=%d, fps=%.1f, start_time=%f' % (
                 self.type, self.codec, self.video_width, self.video_height,
-                self.video_fps, self.start_time)
+                self.video_fps, self.start_time or 0)
         elif self.type == 'subtitle':
             d = 'type=%s, codec=%s' % (self.type, self.codec)
         if self.bitrate is not None:

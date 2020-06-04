@@ -199,6 +199,7 @@ class Converter(object):
 
         skinopts = list()
         preopts = list()
+        duration = info.format.duration
         for index in range(0, len(options)):
             if info.video and 'video' in options[index]:
                 options[index] = options[index].copy()
@@ -214,7 +215,18 @@ class Converter(object):
                 preopts.append(preoptlist)
                 skinoptlist = options[index]['video'].get('ffmpeg_skin_opts', '').split(' ')
                 # Remove empty arguments (make crashes)
-                skinoptlist = [arg for arg in skinoptlist if arg]
+                next_arg_is_file = False
+                newskinoptlist = list()
+                for arg in skinoptlist:
+                    if arg:
+                        if arg == '-i':
+                            next_arg_is_file = True
+                        elif next_arg_is_file:
+                            branded_info = self.ffmpeg.probe(arg)
+                            duration += branded_info.format.duration or 0
+                            next_arg_is_file = False
+                        newskinoptlist.append(arg)
+                skinoptlist = newskinoptlist
                 skinopts.append(skinoptlist)
             if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
                 raise ConverterError('Zero-length media')
@@ -225,21 +237,21 @@ class Converter(object):
                 optlist1.append(self.parse_options(output_options, 1))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist1,
                                                 timeout=timeout, preopts=preopts, skinopts=skinopts):
-                yield float(timecode) / info.format.duration
+                yield float(timecode) / duration
 
             optlist2 = []
             for output_options in options:
                 optlist1.append(self.parse_options(output_options, 2))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist2,
                                                 timeout=timeout, preopts=preopts, skinopts=skinopts):
-                yield 0.5 + float(timecode) / info.format.duration
+                yield 0.5 + float(timecode) / duration
         else:
             optlist = []
             for output_options in options:
                 optlist.append(self.parse_options(output_options, twopass))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist,
                                                 timeout=timeout, preopts=preopts, skinopts=skinopts):
-                yield float(timecode) / info.format.duration
+                yield float(timecode) / duration
 
     def segment(self, infile, working_directory, output_files, output_directories, options, timeout=10):
         """
@@ -320,7 +332,7 @@ class Converter(object):
         current_directory = os.getcwd()
         os.chdir(working_directory)
         for timecode in self.ffmpeg.convert(infile, outputs_ts_files, outputs_options, timeout=timeout):
-            yield int((100.0 * timecode) / info.format.duration)
+            yield float(timecode) / info.format.duration
         os.chdir(current_directory)
 
     def probe(self, fname, posters_as_video=True):
