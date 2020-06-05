@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-import os.path
+from itertools import count
+from subprocess import Popen, PIPE
+import locale
+import logging
 import os
 import re
 import signal
-from subprocess import Popen, PIPE
-import logging
-import locale
-from itertools import count
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class ArgumentError(Exception):
 
 class FFMpegError(Exception):
 
-    def __init__(self, message, cmd=None, output=None, details=None, pid=None):
+    def __init__(self, message, cmd=None, details=None, pid=None):
         """
         @param    message: Error message.
         @type     message: C{str}
@@ -28,24 +27,19 @@ class FFMpegError(Exception):
         @param    cmd: Full command string used to spawn ffmpeg.
         @type     cmd: C{str}
 
-        @param    output: Full output from the ffmpeg command.
-        @type     output: C{str}
-
         @param    details: Optional error details.
         @type     details: C{str}
         """
         super(FFMpegError, self).__init__(message)
 
         self.cmd = cmd
-        self.output = output
         self.details = details
         self.message = message
         self.pid = pid
 
     def __repr__(self):
-        error = self.details if self.details else self.message
-        return ('<%s error="%s", pid=%s, cmd="%s">' %
-                (self.__class__.__name__, error, self.pid, self.cmd))
+        return ('<%s error="%s", details="%s", pid=%s, cmd="%s">' %
+                (self.__class__.__name__, self.message, self.details, self.pid, self.cmd))
 
     def __str__(self):
         return self.__repr__()
@@ -200,7 +194,6 @@ class MediaStreamInfo(object):
             self.start_time = self.parse_float(val)
         elif key == 'DISPOSITION:attached_pic':
             self.attached_pic = self.parse_int(val)
-
         if key.startswith('TAG:'):
             key = key.split('TAG:')[1]
             value = val
@@ -254,13 +247,13 @@ class MediaStreamInfo(object):
                         in self.metadata.items()]
         metadata_str = ', '.join(metadata_str)
         if self.type == 'audio':
-            d = 'type=%s, codec=%s, channels=%d, rate=%.0f' % (
+            d = 'type=%s, codec=%s, channels=%d, rate=%.0f, start_time=%f' % (
                 self.type, self.codec, self.audio_channels,
-                self.audio_samplerate)
+                self.audio_samplerate, self.start_time or 0)
         elif self.type == 'video':
-            d = 'type=%s, codec=%s, width=%d, height=%d, fps=%.1f' % (
+            d = 'type=%s, codec=%s, width=%d, height=%d, fps=%.1f, start_time=%f' % (
                 self.type, self.codec, self.video_width, self.video_height,
-                self.video_fps)
+                self.video_fps, self.start_time or 0)
         elif self.type == 'subtitle':
             d = 'type=%s, codec=%s' % (self.type, self.codec)
         if self.bitrate is not None:
@@ -402,7 +395,7 @@ class FFMpeg(object):
         return Popen(cmds, shell=shell, stdin=stdin, stdout=stdout,
                      stderr=stderr, close_fds=True)
 
-    def probe(self, fname, posters_as_video=True):
+    def probe(self, uri, posters_as_video=True):
         """
         Examine the media file and determine its format and media streams.
         Returns the MediaInfo object, or None if the specified file is
@@ -430,9 +423,9 @@ class FFMpeg(object):
         info = MediaInfo(posters_as_video)
 
         p = self._spawn([self.ffprobe_path, '-hide_banner',
-                         '-show_format', '-show_streams', fname])
+                         '-show_format', '-show_streams', '-show_error', uri])
         stdout_data, stderr_data = p.communicate()
-        stdout_data = stdout_data.decode(console_encoding, "replace")
+        stdout_data = stdout_data.decode(console_encoding, 'replace')
         info.parse_ffprobe(stdout_data)
 
         if not info.format.format and len(info.streams) == 0:
@@ -440,7 +433,7 @@ class FFMpeg(object):
 
         return info
 
-    def convert(self, infile, outfile, opts, timeout=10, preopts=None, skinopts=None):
+    def convert(self, infile, outfiles, opts, timeout=10, preopts=None, skinopts=None):
         """
         Convert the source media (infile) according to specified options
         (a list of ffmpeg switches as strings) and save it to outfile.
@@ -461,19 +454,23 @@ class FFMpeg(object):
         ...    pass  # can be used to inform the user about conversion progress
 
         """
+        cmds = [self.ffmpeg_path, '-hide_banner']
+
         if not os.path.exists(infile):
             raise FFMpegError("Input file doesn't exist: " + infile)
-
-        cmds = [self.ffmpeg_path, '-hide_banner']
         if preopts:
-            cmds.extend(preopts)
-        cmds.extend(['-i', infile])
-        if skinopts:
-            cmds.extend(skinopts)
-        cmds.extend(['-max_muxing_queue_size', '500'])
-        cmds.extend(opts)
-        cmds.extend(['-y', outfile])
-
+            for preopt in preopts:
+                if preopt:
+                    cmds.extend(preopts)
+        cmds.extend(['-y', '-i', infile])
+        index = 0
+        for outputfile, outopts in zip(outfiles, opts):
+            if skinopts and skinopts[index]:
+                cmds.extend(skinopts[index])
+            cmds.extend(['-max_muxing_queue_size', '500'])
+            cmds.extend(outopts)
+            cmds.append(outputfile)
+            index += 1
         try:
             p = self._spawn(cmds)
         except OSError as e:
@@ -518,7 +515,7 @@ class FFMpeg(object):
             if not ret:
                 break
 
-            ret = ret.decode(console_encoding, "replace")
+            ret = ret.decode(console_encoding, 'replace')
             total_output += ret
             buf += ret
             if '\r' in buf:
@@ -552,22 +549,23 @@ class FFMpeg(object):
                     line.split(':')[0], cmd, total_output, pid=p.pid)
             if line.startswith(infile + ': '):
                 err = line[len(infile) + 2:]
-                raise FFMpegConvertError('Encoding error', cmd, total_output,
-                                         err, pid=p.pid)
+                raise FFMpegConvertError(
+                    'Encoding error: %s' % err, cmd, total_output, pid=p.pid)
             if line.startswith('Error while '):
-                raise FFMpegConvertError('Encoding error', cmd, total_output,
-                                         line, pid=p.pid)
+                raise FFMpegConvertError(
+                    'Encoding error: %s' % line, cmd, total_output, pid=p.pid)
             if not yielded:
-                raise FFMpegConvertError('Unknown ffmpeg error', cmd,
-                                         total_output, line, pid=p.pid)
+                raise FFMpegConvertError(
+                    'Unknown ffmpeg error', cmd, total_output, pid=p.pid)
         if p.returncode != 0:
-            raise FFMpegConvertError('Exited with code %d' % p.returncode, cmd,
-                                     total_output, pid=p.pid)
+            raise FFMpegConvertError(
+                'Exited with code %d' % p.returncode, cmd, total_output, pid=p.pid)
 
-    def thumbnail(self, fname, time, outfile,
+    def thumbnail(self, uri, time, outfile,
                   size=None, quality=DEFAULT_JPEG_QUALITY):
         """
         Create a thumbnal of media file, and store it to outfile
+        @param uri: file path or url
         @param time: time point (in seconds) (float or int)
         @param size: Size, if specified, is WxH of the desired thumbnail.
             If not specified, the video resolution is used.
@@ -576,11 +574,12 @@ class FFMpeg(object):
 
         >>> FFMpeg().thumbnail('test1.ogg', 5, '/tmp/shot.png', '320x240')
         """
-        return self.thumbnails(fname, [(time, outfile, size, quality)])
+        return self.thumbnails(uri, [(time, outfile, size, quality)])
 
-    def thumbnails(self, fname, option_list, output_seeking=False):
+    def thumbnails(self, uri, option_list, output_seeking=False):
         """
         Create one or more thumbnails of video.
+        @param uri: file path or url
         @param option_list: a list of tuples like:
             (time, outfile, size=None, quality=DEFAULT_JPEG_QUALITY)
             see documentation of `converter.FFMpeg.thumbnail()` for details.
@@ -591,15 +590,18 @@ class FFMpeg(object):
         >>> FFMpeg().thumbnails('test1.ogg', [(5, '/tmp/shot.png', '320x240'),
         >>>                                   (10, '/tmp/shot2.png', None, 5)])
         """
-        if not os.path.exists(fname):
-            raise IOError('No such file: ' + fname)
+        if '://' not in uri and not os.path.exists(uri):
+            raise IOError('No such file: ' + uri)
 
         output_seeking = len(option_list) > 1 or output_seeking
 
         cmds = [self.ffmpeg_path, '-hide_banner']
+        if '://' in uri:
+            # add request timeout (2 minutes in microseconds)
+            cmds.extend(['-timeout', '120000000'])
         if not output_seeking:
             cmds.extend(['-ss', str(option_list[0][0])])
-        cmds.extend(['-i', fname, '-y', '-an'])
+        cmds.extend(['-i', uri, '-y', '-an'])
         for thumb in option_list:
             if len(thumb) > 2 and thumb[2]:
                 cmds.extend(['-s', str(thumb[2])])
@@ -618,9 +620,9 @@ class FFMpeg(object):
         _, stderr_data = p.communicate()
         if stderr_data == '':
             raise FFMpegError('Error while calling ffmpeg binary')
-        stderr_data.decode(console_encoding, "replace")
+        stderr_data = stderr_data.decode(console_encoding, 'replace')
         if any(not os.path.exists(option[1]) for option in option_list):
-            raise FFMpegError('Error creating thumbnail: %s' % stderr_data)
+            raise FFMpegError('Error creating thumbnail.', details=stderr_data)
 
     def mix(
         self, inputs, inputs_maps, output,
@@ -673,4 +675,4 @@ class FFMpeg(object):
         if p.returncode != 0:
             raise FFMpegError(
                 'Error while calling ffmpeg binary, retcode %i' % p.returncode,
-                output=stderr_data.decode(console_encoding, 'replace'))
+                details=stderr_data.decode(console_encoding, 'replace'))

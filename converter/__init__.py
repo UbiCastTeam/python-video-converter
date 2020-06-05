@@ -2,12 +2,11 @@
 
 import errno
 import logging
-import math
 import os
 import warnings
 from converter.codecs import codec_lists
-from converter.formats import format_list
 from converter.ffmpeg import FFMpeg
+from converter.formats import format_list
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +120,9 @@ class Converter(object):
         for input_map in opt.get('maps', []):
             format_options.extend(['-map', str(input_map)])
 
+        if 'map_chapters' in opt:
+            format_options.extend(['-map_chapters', str(opt['map_chapters'])])
+
         # aggregate all options
         optlist = audio_options + video_options + subtitle_options + \
             format_options
@@ -132,7 +134,7 @@ class Converter(object):
 
         return optlist
 
-    def convert(self, infile, outfile, options, twopass=False, timeout=10):
+    def convert(self, infile, outfiles, options, twopass=False, timeout=10):
         """
         Convert media file (infile) according to specified options, and save it to outfile. For two-pass encoding, specify the pass (1 or 2) in the twopass parameter.
 
@@ -172,11 +174,21 @@ class Converter(object):
         >>> for timecode in conv:
         ...   pass # can be used to inform the user about the progress
         """
-        if not isinstance(options, dict):
+
+        if isinstance(outfiles, str):
+            outfiles = [outfiles]
+
+        if isinstance(options, dict):
+            options = [options]
+
+        if len(outfiles) != len(options):
+            raise ConverterError('Options are not provided for all the outputs')
+
+        if not isinstance(options, list):
             raise ConverterError('Invalid options')
 
         if not os.path.exists(infile):
-            raise ConverterError("Source file doesn't exist: " + infile)
+            raise ConverterError("Source file doesn't exist: " + infile[0])
 
         info = self.ffmpeg.probe(infile)
         if info is None:
@@ -185,87 +197,142 @@ class Converter(object):
         if not info.video and not info.audio:
             raise ConverterError('Source file has no audio or video streams')
 
-        preoptlist = None
-        skinoptlist = None
-        if info.video and 'video' in options:
-            options = options.copy()
-            v = options['video'] = options['video'].copy()
-            v['src_width'] = info.video.video_width
-            v['src_height'] = info.video.video_height
-            v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
-            v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
-            v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
-            preoptlist = options['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
-            # Remove empty arguments (make crashes)
-            preoptlist = [arg for arg in preoptlist if arg]
-            skinoptlist = options['video'].get('ffmpeg_skin_opts', '').split(' ')
-            # Remove empty arguments (make crashes)
-            skinoptlist = [arg for arg in skinoptlist if arg]
-        if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
-            raise ConverterError('Zero-length media')
+        skinopts = list()
+        preopts = list()
+        duration = info.format.duration
+        for index in range(0, len(options)):
+            if info.video and 'video' in options[index]:
+                options[index] = options[index].copy()
+                v = options[index]['video'] = options[index]['video'].copy()
+                v['src_width'] = info.video.video_width
+                v['src_height'] = info.video.video_height
+                v['display_aspect_ratio'] = info.video.video_display_aspect_ratio
+                v['sample_aspect_ratio'] = info.video.video_sample_aspect_ratio
+                v['rotate'] = info.video.metadata.get('rotate') or info.video.metadata.get('ROTATE')
+                preoptlist = options[index]['video'].get('ffmpeg_custom_launch_opts', '').split(' ')
+                # Remove empty arguments (make crashes)
+                preoptlist = [arg for arg in preoptlist if arg]
+                preopts.append(preoptlist)
+                skinoptlist = options[index]['video'].get('ffmpeg_skin_opts', '').split(' ')
+                # Remove empty arguments (make crashes)
+                next_arg_is_file = False
+                newskinoptlist = list()
+                for arg in skinoptlist:
+                    if arg:
+                        if arg == '-i':
+                            next_arg_is_file = True
+                        elif next_arg_is_file:
+                            branded_info = self.ffmpeg.probe(arg)
+                            duration += branded_info.format.duration or 0
+                            next_arg_is_file = False
+                        newskinoptlist.append(arg)
+                skinoptlist = newskinoptlist
+                skinopts.append(skinoptlist)
+            if not info.format or not info.format.duration or not isinstance(info.format.duration, (float, int)) or info.format.duration < 0.01:
+                raise ConverterError('Zero-length media')
 
         if twopass:
-            optlist1 = self.parse_options(options, 1)
-            for timecode in self.ffmpeg.convert(infile, outfile, optlist1,
-                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
-                yield float(timecode) / info.format.duration
+            optlist1 = []
+            for output_options in options:
+                optlist1.append(self.parse_options(output_options, 1))
+            for timecode in self.ffmpeg.convert(infile, outfiles, optlist1,
+                                                timeout=timeout, preopts=preopts, skinopts=skinopts):
+                yield float(timecode) / duration
 
-            optlist2 = self.parse_options(options, 2)
-            for timecode in self.ffmpeg.convert(infile, outfile, optlist2,
-                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
-                yield 0.5 + float(timecode) / info.format.duration
+            optlist2 = []
+            for output_options in options:
+                optlist2.append(self.parse_options(output_options, 2))
+            for timecode in self.ffmpeg.convert(infile, outfiles, optlist2,
+                                                timeout=timeout, preopts=preopts, skinopts=skinopts):
+                yield 0.5 + float(timecode) / duration
         else:
-            optlist = self.parse_options(options, twopass)
-            for timecode in self.ffmpeg.convert(infile, outfile, optlist,
-                                                timeout=timeout, preopts=preoptlist, skinopts=skinoptlist):
-                yield float(timecode) / info.format.duration
+            optlist = []
+            for output_options in options:
+                optlist.append(self.parse_options(output_options, twopass))
+            for timecode in self.ffmpeg.convert(infile, outfiles, optlist,
+                                                timeout=timeout, preopts=preopts, skinopts=skinopts):
+                yield float(timecode) / duration
 
-    def segment(self, infile, working_directory, output_file, output_directory, options, timeout=10):
+    def segment(self, infile, working_directory, output_files, output_directories, options, timeout=10):
         """
         Segment the first video stream muxed with the first audio track
         """
-        if not os.path.exists(infile):
-            raise ConverterError("Source file doesn't exist: " + infile)
 
-        info = self.ffmpeg.probe(infile)
-        if info is None:
-            raise ConverterError("Can't get information about source file")
+        if isinstance(output_files, str):
+            output_files = [output_files]
 
-        if not info.video and not info.audio:
-            raise ConverterError('Source file has no audio or video streams')
+        if isinstance(output_directories, str):
+            output_directories = [output_directories]
 
-        try:
-            os.makedirs(os.path.join(working_directory, output_directory))
-        except Exception as e:
-            if e.errno != errno.EEXIST:
-                raise e
+        if isinstance(options, str):
+            options = [options]
+
+        if len(output_files) != len(output_directories) != len(options):
+            raise ConverterError('Input file or directories or options are not provided for all the outputs')
+
+        outputs_options = list()
+        outputs_ts_files = list()
+        for index, output_file in enumerate(output_files):
+            if not os.path.exists(infile):
+                raise ConverterError("Source file doesn't exist: " + infile)
+
+            info = self.ffmpeg.probe(infile)
+            if info is None:
+                raise ConverterError("Can't get information about source file")
+
+            if not info.video and not info.audio:
+                raise ConverterError('Source file has no audio or video streams')
+            output_directory = output_directories[index]
+            output_file = output_files[index]
+            try:
+                os.makedirs(os.path.join(working_directory, output_directory))
+            except Exception as e:
+                if e.errno != errno.EEXIST:
+                    raise e
+            segment_time = options[index].get('segment_time', 1)
+            optlist = [
+                "-flags", "-global_header", "-f", "segment", "-segment_time", "%s" % segment_time, "-segment_list", output_file, "-segment_list_type", "m3u8", "-segment_format", "mpegts",
+                "-segment_list_entry_prefix", "%s/" % output_directory
+            ]
+            try:
+                if options[index].get('maps'):
+                    for input_map in (options[index].get('maps') or ['0']):
+                        optlist.extend(['-map', str(input_map)])
+                    stream_selected = None
+                    if input_map.count(":") > 1:
+                        input_stream = input_map.split(":")
+                        count = 0
+                        for stream in info.streams:
+                            if (input_stream[1] == 'a' and 'audio' in stream.type) or (input_stream[1] == 'v' and 'video' in stream.type):
+                                if count == int(input_stream[2]):
+                                    stream_selected = stream
+                                    break
+                                else:
+                                    count += 1
+                    else:
+                        track_id = int(input_map[-1])
+                        stream_selected = info.streams[track_id]
+                    codec = stream_selected.codec
+                    codec_type = '-vcodec' if 'video' in stream_selected.type else '-acodec'
+                    optlist.extend([codec_type, 'copy'])
+                else:
+                    input_map = ['0']
+                    track_id = 0 if "video" in info.streams[0].type else 1
+                    codec = info.streams[track_id].codec
+                    optlist.extend(['-vcodec', 'copy', '-acodec', 'copy'])
+            except Exception:
+                warnings.warn('Could not determinate encoder', RuntimeWarning)
+                codec = ""
+            if "h264" in codec:
+                optlist.insert(-4, "-vbsf")
+                optlist.insert(-4, "h264_mp4toannexb")
+            outfile = "%s/media%%05d.ts" % output_directory
+            outputs_options.append(optlist)
+            outputs_ts_files.append(outfile)
         current_directory = os.getcwd()
         os.chdir(working_directory)
-        segment_time = max(options.get('segment_time', 1), math.ceil(options.get('audio', {}).get('start_time', 1)))
-
-        optlist = [
-            "-muxdelay", "0", "-flags", "-global_header", "-f", "segment", "-segment_time", "%s" % segment_time, "-segment_list", output_file, "-segment_list_type", "m3u8", "-segment_format", "mpegts",
-            "-segment_list_entry_prefix", "%s/" % output_directory
-        ]
-        for input_map in (options.get('maps') or ['0']):
-            optlist.extend(['-map', str(input_map)])
-        optlist.extend(["-vcodec", "copy", "-acodec", "copy"])
-
-        try:
-            if "video" in info.streams[0].type:
-                codec = info.streams[0].codec
-            else:
-                codec = info.streams[1].codec
-        except Exception:
-            warnings.warn("Could not determinate encoder", RuntimeWarning)
-            codec = ""
-        if "h264" in codec:
-            optlist.insert(-4, "-vbsf")
-            optlist.insert(-4, "h264_mp4toannexb")
-
-        outfile = "%s/media%%05d.ts" % output_directory
-        for timecode in self.ffmpeg.convert(infile, outfile, optlist, timeout=timeout):
-            yield int((100.0 * timecode) / info.format.duration)
+        for timecode in self.ffmpeg.convert(infile, outputs_ts_files, outputs_options, timeout=timeout):
+            yield float(timecode) / info.format.duration
         os.chdir(current_directory)
 
     def probe(self, fname, posters_as_video=True):
