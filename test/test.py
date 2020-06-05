@@ -117,10 +117,11 @@ class TestFFMpeg(unittest.TestCase):
         self.assertEqual(80000, a.bitrate)
         self.assertEqual(48000, a.audio_samplerate)
         self.assertEqual(a.metadata['ENCODER'], 'ffmpeg2theora 0.19')
+        print(repr(info))
 
         self.assertEqual(repr(info), 'MediaInfo(format=MediaFormatInfo(duration=32.996875, format=ogg, ), streams=['
-                                     'MediaStreamInfo(type=video, codec=theora, width=720, height=400, fps=25.0, ENCODER=ffmpeg2theora 0.19), '
-                                     'MediaStreamInfo(type=audio, codec=vorbis, channels=2, rate=48000, bitrate=80000, ENCODER=ffmpeg2theora 0.19)])')
+                                     'MediaStreamInfo(type=video, codec=theora, width=720, height=400, fps=25.0, start_time=0.000000, ENCODER=ffmpeg2theora 0.19), '
+                                     'MediaStreamInfo(type=audio, codec=vorbis, channels=2, rate=48000, start_time=0.000000, bitrate=80000, ENCODER=ffmpeg2theora 0.19)])')
 
     def test_ffmpeg_convert(self):
         f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
@@ -135,11 +136,11 @@ class TestFFMpeg(unittest.TestCase):
             ffmpeg.FFMpegConvertError, consume, f.convert, '/etc/passwd', self.video_file_path, [])
 
         info = f.probe('test1.ogg')
-
-        convert_options = [
+        convert_options = list()
+        convert_options.append([
             '-acodec', 'libvorbis', '-ab', '16k', '-ac', '1', '-ar', '11025',
-            '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k']
-        conv = f.convert('test1.ogg', self.video_file_path, convert_options)
+            '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k'])
+        conv = f.convert('test1.ogg', [self.video_file_path], convert_options)
 
         last_tc = 0.0
         for tc in conv:
@@ -172,13 +173,14 @@ class TestFFMpeg(unittest.TestCase):
     def test_ffmpeg_termination(self):
         # test when ffmpeg is killed
         f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
-        convert_options = [
+        convert_options = list()
+        convert_options.append([
             '-acodec', 'libvorbis', '-ab', '16k', '-ac', '1', '-ar', '11025',
-            '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k']
+            '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k'])
         p_list = {}  # modifiable object in closure
         f._spawn = lambda * \
             args: p_list.setdefault('', ffmpeg.FFMpeg._spawn(*args))
-        conv = f.convert('test1.ogg', self.video_file_path, convert_options)
+        conv = f.convert('test1.ogg', [self.video_file_path], convert_options)
         next(conv)  # let ffmpeg to start
         p = p_list['']
         p.terminate()
