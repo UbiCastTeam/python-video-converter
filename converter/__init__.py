@@ -241,7 +241,7 @@ class Converter(object):
 
             optlist2 = []
             for output_options in options:
-                optlist1.append(self.parse_options(output_options, 2))
+                optlist2.append(self.parse_options(output_options, 2))
             for timecode in self.ffmpeg.convert(infile, outfiles, optlist2,
                                                 timeout=timeout, preopts=preopts, skinopts=skinopts):
                 yield 0.5 + float(timecode) / duration

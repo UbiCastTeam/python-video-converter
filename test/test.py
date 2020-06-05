@@ -117,8 +117,6 @@ class TestFFMpeg(unittest.TestCase):
         self.assertEqual(80000, a.bitrate)
         self.assertEqual(48000, a.audio_samplerate)
         self.assertEqual(a.metadata['ENCODER'], 'ffmpeg2theora 0.19')
-        print(repr(info))
-
         self.assertEqual(repr(info), 'MediaInfo(format=MediaFormatInfo(duration=32.996875, format=ogg, ), streams=['
                                      'MediaStreamInfo(type=video, codec=theora, width=720, height=400, fps=25.0, start_time=0.000000, ENCODER=ffmpeg2theora 0.19), '
                                      'MediaStreamInfo(type=audio, codec=vorbis, channels=2, rate=48000, start_time=0.000000, bitrate=80000, ENCODER=ffmpeg2theora 0.19)])')
