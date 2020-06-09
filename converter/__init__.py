@@ -174,7 +174,6 @@ class Converter(object):
         >>> for timecode in conv:
         ...   pass # can be used to inform the user about the progress
         """
-
         if isinstance(outfiles, str):
             outfiles = [outfiles]
 
@@ -221,7 +220,7 @@ class Converter(object):
                     if arg:
                         if arg == '-i':
                             next_arg_is_file = True
-                        elif next_arg_is_file:
+                        elif next_arg_is_file and 'aevalsrc' not in arg:
                             branded_info = self.ffmpeg.probe(arg)
                             duration += branded_info.format.duration or 0
                             next_arg_is_file = False
