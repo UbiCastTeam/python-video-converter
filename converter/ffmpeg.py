@@ -392,6 +392,7 @@ class FFMpeg(object):
     @staticmethod
     def _spawn(cmds, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE):
         logger.debug('Spawning ffmpeg with command: ' + ' '.join(cmds))
+        print(' '.join(cmds))
         return Popen(cmds, shell=shell, stdin=stdin, stdout=stdout,
                      stderr=stderr, close_fds=True)
 
@@ -467,7 +468,7 @@ class FFMpeg(object):
         for outputfile, outopts in zip(outfiles, opts):
             if skinopts and skinopts[index]:
                 cmds.extend(skinopts[index])
-            cmds.extend(['-max_muxing_queue_size', '500'])
+            cmds.extend(['-max_muxing_queue_size', '99999'])
             cmds.extend(outopts)
             cmds.append(outputfile)
             index += 1
