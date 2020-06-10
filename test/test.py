@@ -450,6 +450,92 @@ class TestFFMpeg(unittest.TestCase):
 
         self.assertTrue(verify_progress(conv))
 
+    def test_segmenter_audio_track(self):
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
+        input_file = 'test1.ogg'
+        self.video_file_path = [os.path.join(self.temp_dir, 'test.mp4')]
+        options = [{'format': 'mp4', 'faststart': True, 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 2000, 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+        input_file = self.video_file_path[0]
+        work_dir = os.path.join(self.temp_dir)
+        self.video_file_path = [os.path.join(self.temp_dir, 'test.m3u8')]
+        output_dir_names = [os.path.join(self.temp_dir, 'test')]
+        options = [{'segment_time': 6, 'maps': ['0:a:0']}]
+        conv = c.segment(input_file, work_dir, self.video_file_path, output_dir_names, options)
+
+        self.assertTrue(verify_progress(conv))
+
+    def test_segmenter_video_track(self):
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
+        input_file = 'test1.ogg'
+        self.video_file_path = [os.path.join(self.temp_dir, 'test.mp4')]
+        options = [{'format': 'mp4', 'faststart': True, 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 2000, 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+        input_file = self.video_file_path[0]
+        work_dir = os.path.join(self.temp_dir)
+        self.video_file_path = [os.path.join(self.temp_dir, 'test.m3u8')]
+        output_dir_names = [os.path.join(self.temp_dir, 'test')]
+        options = [{'segment_time': 1, 'maps': ['0:v:0']}]
+        conv = c.segment(input_file, work_dir, self.video_file_path, output_dir_names, options)
+
+        self.assertTrue(verify_progress(conv))
+
+    def test_branding_input(self):
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
+        input_file = 'test1.ogg'
+        self.video_file_path = [os.path.join(self.temp_dir, 'preroll.mp4')]
+        options = [{'format': 'mp4', 'faststart': True, 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 2000, 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+        preroll = os.path.join(self.temp_dir, 'preroll.mp4')
+        input_file = preroll
+        self.video_file_path = [os.path.join(self.temp_dir, 'test.mp4')]
+        options = [{'format': 'mp4', 'faststart': True, 'maps': ['[outv]', '[outa]'], 'map_chapters': '-1', 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 1000, 'ffmpeg_skin_opts': '-i logo.png -i %s -i %s -filter_complex [1]scale=192:175[logo];[0:v:0][logo]overlay=10:10[mainv];[2:v:0]scale=720:400:force_original_aspect_ratio=decrease,pad=720:400:(ow-iw)/2:(oh-ih)/2,setdar=16/9[introv];[mainv]scale=720:400[mainv];[3:v:0]scale=720:400:force_original_aspect_ratio=decrease,pad=720:400:(ow-iw)/2:(oh-ih)/2,setdar=16/9[outrov];[introv][2:a:0][mainv][0:a:0][outrov][3:a:0]concat=n=3:v=1:a=1[outv][outa] -metadata comment=2dd18fa85d60a236e0ebe566bf14dd8d' % (preroll, preroll), 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+    def test_branding_no_audio_input(self):
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
+        input_file = 'test1_no_audio.ogg'
+        self.video_file_path = [os.path.join(self.temp_dir, 'test1_no_audio.mp4')]
+        options = [{'format': 'mp4', 'faststart': True, 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 2000, 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+        input_file = 'test1.ogg'
+        self.video_file_path = [os.path.join(self.temp_dir, 'preroll.mp4')]
+        options = [{'format': 'mp4', 'faststart': True, 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 2000, 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+        input_file = os.path.join(self.temp_dir, 'test1_no_audio.mp4')
+        self.video_file_path = [os.path.join(self.temp_dir, 'test.mp4')]
+        preroll = os.path.join(self.temp_dir, 'preroll.mp4')
+        options = [{'format': 'mp4', 'faststart': True, 'maps': ['[outv]', '[outa]'], 'map_chapters': '-1', 'video': {'codec': 'h264', 'pix_fmt': 'yuv420p', 'profile': 'main', 'level': '3.1', 'preset': 'faster', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'max_bitrate': 1000, 'ffmpeg_skin_opts': '-i logo.png -i %s -f lavfi -i aevalsrc=0:d=2 -i %s -filter_complex [1]scale=192:175[logo];[0:v:0][logo]overlay=10:10[mainv];[2:v:0]scale=720:400:force_original_aspect_ratio=decrease,pad=720:400:(ow-iw)/2:(oh-ih)/2,setdar=16/9[introv];[mainv]scale=720:400[mainv];[4:v:0]scale=720:400:force_original_aspect_ratio=decrease,pad=720:400:(ow-iw)/2:(oh-ih)/2,setdar=16/9[outrov];[introv][2:a:0][mainv][3:a:0][outrov][4:a:0]concat=n=3:v=1:a=1[outv][outa] -shortest -t 98 -metadata comment=2dd18fa85d60a236e0ebe566bf14dd8d' % (preroll, preroll), 'quality': 19}, 'audio': {'codec': 'aac', 'channels': 2, 'samplerate': 44100, 'quality': 3}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
+    def test_converter_parallelize(self):
+        c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
+        input_file = 'test1.ogg'
+        self.video_file_path = [os.path.join(self.temp_dir, 'result1.ogg'), os.path.join(self.temp_dir, 'result2.ogg')]
+        options = [{'format': 'ogg', 'maps': [0, '-0:d', '-0:s'], 'map_chapters': '-1', 'video': {'codec': 'theora', 'width': 1280, 'height': 720, 'fps': 30, 'keyframe_interval': 30, 'bitrate': 300}, 'audio': {'codec': 'vorbis', 'channels': 1, 'samplerate': 44100, 'bitrate': 32}}, {'format': 'ogg', 'maps': [0, '-0:d', '-0:s'], 'map_chapters': '-1', 'video': {'codec': 'theora', 'width': 352, 'height': 240, 'fps': 30, 'keyframe_interval': 30, 'bitrate': 300}, 'audio': {'codec': 'vorbis', 'channels': 1, 'samplerate': 44100, 'bitrate': 32}}]
+        conv = c.convert(input_file, self.video_file_path, options)
+
+        self.assertTrue(verify_progress(conv))
+
     def test_probe_audio_poster(self):
         c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
 
