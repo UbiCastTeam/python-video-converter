@@ -392,7 +392,6 @@ class FFMpeg(object):
     @staticmethod
     def _spawn(cmds, shell=False, stdin=PIPE, stdout=PIPE, stderr=PIPE):
         logger.debug('Spawning ffmpeg with command: ' + ' '.join(cmds))
-        print(' '.join(cmds))
         return Popen(cmds, shell=shell, stdin=stdin, stdout=stdout,
                      stderr=stderr, close_fds=True)
 
