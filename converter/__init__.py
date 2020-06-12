@@ -224,6 +224,8 @@ class Converter(object):
                             branded_info = self.ffmpeg.probe(arg)
                             duration += branded_info.format.duration or 0
                             next_arg_is_file = False
+                        elif next_arg_is_file and 'aevalsrc' in arg:
+                            next_arg_is_file = False
                         newskinoptlist.append(arg)
                 skinoptlist = newskinoptlist
                 skinopts.append(skinoptlist)
