@@ -46,7 +46,7 @@ class VideoCodec(BaseCodec):
         'pix_fmt': str,
         'bitrate': int,
         'max_bitrate': int,
-        'fps': int,
+        'fps': float,
         'keyframe_interval': int,
         'width': int,
         'height': int,
@@ -162,7 +162,7 @@ class VideoCodec(BaseCodec):
 
         if 'fps' in safe:
             f = safe['fps']
-            if f < 1 or f > 120:
+            if f <= 0 or f > 120:
                 del safe['fps']
 
         if 'keyframe_interval' in safe:
