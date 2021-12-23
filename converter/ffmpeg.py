@@ -201,7 +201,10 @@ class MediaStreamInfo(object):
 
         if self.type == 'audio':
             if key == 'avg_frame_rate':
-                if '/' in val:
+                if val == '1000/1':
+                    # 1000/1 is reported by ffprobe when frame rate cannot be found in some cases
+                    pass
+                elif '/' in val:
                     n, d = val.split('/')
                     n = self.parse_float(n)
                     d = self.parse_float(d)
@@ -212,7 +215,10 @@ class MediaStreamInfo(object):
 
         if self.type == 'video':
             if key == 'r_frame_rate':
-                if '/' in val:
+                if val == '1000/1':
+                    # 1000/1 is reported by ffprobe when frame rate cannot be found in some cases
+                    pass
+                elif '/' in val:
                     n, d = val.split('/')
                     n = self.parse_float(n)
                     d = self.parse_float(d)
