@@ -192,6 +192,10 @@ class MediaStreamInfo(object):
             self.audio_samplerate = self.parse_float(val)
         elif key == 'start_time':
             self.start_time = self.parse_float(val)
+        elif key == 'rotation':
+            self.metadata['rotate'] = self.parse_int(val)
+            if self.metadata['rotate'] < 0:
+                self.metadata['rotate'] += 360
         elif key == 'DISPOSITION:attached_pic':
             self.attached_pic = self.parse_int(val)
         if key.startswith('TAG:'):
