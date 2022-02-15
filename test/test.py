@@ -266,7 +266,7 @@ class TestFFMpeg(unittest.TestCase):
             {'codec': 'doctest', 'fps': 0, 'bitrate': 0, 'width': 0, 'height': '480'}))
 
         self.assertEqual(
-            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-r', '25', '-vb',
+            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-r', '25.0', '-vb',
                 '300k', '-s', '320x240', '-aspect', '320:240'],
             c.parse_options({'codec': 'doctest', 'fps': '25', 'bitrate': '300', 'width': 320, 'height': 240}))
 
@@ -373,7 +373,7 @@ class TestFFMpeg(unittest.TestCase):
             ConverterError, c.parse_options, {'format': 'ogg', 'audio': {'codec': 'bogus'}})
 
         self.assertEqual(
-            ['-an', '-vcodec', 'libtheora', '-pix_fmt', 'yuv420p', '-r', '25', '-sn', '-f', 'ogg'],
+            ['-an', '-vcodec', 'libtheora', '-pix_fmt', 'yuv420p', '-r', '25.0', '-sn', '-f', 'ogg'],
             c.parse_options({'format': 'ogg', 'video': {'codec': 'theora', 'fps': 25}}))
         self.assertEqual(
             ['-acodec', 'copy', '-vcodec', 'copy', '-sn', '-f', 'ogg'],
