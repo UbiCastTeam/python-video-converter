@@ -1,0 +1,43 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.7, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install ffmpeg
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install flake8 vulture six
+    - name: Lint code with Python ${{ matrix.python-version }}
+      run: |
+        flake8 .
+    - name: Check for deadcode with Python ${{ matrix.python-version }}
+      run: |
+        vulture --exclude docker/,submodules/ --min-confidence 90 .
+    - name: Run test with Python ${{ matrix.python-version }}
+      run: |
+        python3 setup.py test

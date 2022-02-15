@@ -1,0 +1,11 @@
+# Run flake8 (pycodestyle + pyflakes) check.
+# https://pycodestyle.readthedocs.io/en/latest/intro.html#error-codes
+# Ignored errors:
+# - E501: line too long
+# - E265: block comment should start with '# ' (makes it easier to enable/disable code)
+# - W503: line break before binary operator (deprecated rule)
+# - W505: doc line too long
+
+[flake8]
+ignore = E501,E265,W503,W505
+exclude = .git/,.virtualenv/,__pycache__/,build/,dist/,submodules/
