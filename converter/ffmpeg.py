@@ -641,7 +641,7 @@ class FFMpeg(object):
 
         if len(inputs) != len(inputs_maps):
             raise ArgumentError(
-                'inputs_maps must have the same length then inputs')
+                'inputs_maps length must be the same as inputs length')
 
         stream_metadata_tags = stream_metadata_tags or []
 
@@ -675,13 +675,15 @@ class FFMpeg(object):
             for meta_name, meta_value in stream_metadatas:
                 metadata_tags.extend([
                     '-metadata:s:%i' % stream_index,
-                    '"%s=%s"' % (meta_name, meta_value)
+                    '%s=%s' % (meta_name, meta_value)
                 ])
 
         command.extend(metadata_tags + [output])
 
         p = self._spawn(command)
         stdout_data, stderr_data = p.communicate()
+        logger.debug('ffmpeg out:\n%s', stdout_data.decode(console_encoding, 'replace'))
+        logger.debug('ffmpeg err:\n%s', stderr_data.decode(console_encoding, 'replace'))
         if p.returncode != 0:
             raise FFMpegError(
                 'Error while calling ffmpeg binary, retcode %i' % p.returncode,
