@@ -53,7 +53,7 @@ setup(
         'converter.codecs',
     ],
 
-    setup_requires=[
+    install_requires=[
         'six',
     ],
 )

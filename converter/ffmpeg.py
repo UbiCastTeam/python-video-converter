@@ -10,7 +10,9 @@ import signal
 
 logger = logging.getLogger(__name__)
 
-console_encoding = locale.getdefaultlocale()[1] or 'UTF-8'
+console_encoding = (
+    locale.getencoding() if hasattr(locale, 'getencoding') else locale.getdefaultlocale()[1]
+) or 'UTF-8'
 
 
 class ArgumentError(Exception):
