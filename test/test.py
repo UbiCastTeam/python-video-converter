@@ -136,8 +136,8 @@ class TestFFMpeg(unittest.TestCase):
         info = f.probe('test1.ogg')
         convert_options = list()
         convert_options.append([
-            '-acodec', 'libvorbis', '-ab', '16k', '-ac', '1', '-ar', '11025',
-            '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k'])
+            '-codec:a', 'libvorbis', '-b:a', '16k', '-ac', '1', '-ar', '11025',
+            '-codec:v', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k'])
         conv = f.convert('test1.ogg', [self.video_file_path], convert_options)
 
         last_tc = 0.0
@@ -173,8 +173,8 @@ class TestFFMpeg(unittest.TestCase):
         f = ffmpeg.FFMpeg(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
         convert_options = list()
         convert_options.append([
-            '-acodec', 'libvorbis', '-ab', '16k', '-ac', '1', '-ar', '11025',
-            '-vcodec', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k'])
+            '-codec:a', 'libvorbis', '-b:a', '16k', '-ac', '1', '-ar', '11025',
+            '-codec:v', 'libtheora', '-r', '15', '-s', '360x200', '-b', '128k'])
         p_list = {}  # modifiable object in closure
         f._spawn = lambda * \
             args: p_list.setdefault('', ffmpeg.FFMpeg._spawn(*args))
@@ -251,57 +251,57 @@ class TestFFMpeg(unittest.TestCase):
         c.codec_name = 'doctest'
         c.ffmpeg_codec_name = 'doctest'
 
-        self.assertEqual(['-acodec', 'doctest'], c.parse_options(
+        self.assertEqual(['-codec:a', 'doctest'], c.parse_options(
             {'codec': 'doctest', 'channels': 0, 'bitrate': 0, 'samplerate': 0}))
 
         self.assertEqual(
-            ['-acodec', 'doctest', '-ac', '1', '-ab', '64k', '-ar', '44100'],
+            ['-codec:a', 'doctest', '-ac', '1', '-b:a', '64k', '-ar', '44100'],
             c.parse_options({'codec': 'doctest', 'channels': '1', 'bitrate': '64', 'samplerate': '44100'}))
 
         c = codecs.VideoCodec()
         c.codec_name = 'doctest'
         c.ffmpeg_codec_name = 'doctest'
 
-        self.assertEqual(['-vcodec', 'doctest', '-pix_fmt', 'yuv420p'], c.parse_options(
+        self.assertEqual(['-codec:v', 'doctest', '-pix_fmt', 'yuv420p'], c.parse_options(
             {'codec': 'doctest', 'fps': 0, 'bitrate': 0, 'width': 0, 'height': '480'}))
 
         self.assertEqual(
-            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-r', '25.0', '-vb',
+            ['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-r', '25.0', '-b:v',
                 '300k', '-s', '320x240', '-aspect', '320:240'],
             c.parse_options({'codec': 'doctest', 'fps': '25', 'bitrate': '300', 'width': 320, 'height': 240}))
 
         self.assertEqual(
-            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-s', '384x240',
+            ['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-s', '384x240',
                 '-aspect', '320:240', '-vf', 'crop=320:240:32:0'],
             c.parse_options({'codec': 'doctest', 'src_width': 640, 'src_height': 400, 'mode': 'crop', 'width': 320, 'height': 240}))
 
         self.assertEqual(
-            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x240', '-aspect',
+            ['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x240', '-aspect',
                 '320:200', '-vf', 'crop=320:200:0:20'],
             c.parse_options({'codec': 'doctest', 'src_width': 640, 'src_height': 480, 'mode': 'crop', 'width': 320, 'height': 200}))
 
         self.assertEqual(
-            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x200',
+            ['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x200',
                 '-aspect', '320:240', '-vf', 'pad=320:240:0:20'],
             c.parse_options({'codec': 'doctest', 'src_width': 640, 'src_height': 400, 'mode': 'pad', 'width': 320, 'height': 240}))
 
         self.assertEqual(
-            ['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-s', '266x200',
+            ['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-s', '266x200',
                 '-aspect', '320:200', '-vf', 'pad=320:200:27:0'],
             c.parse_options({'codec': 'doctest', 'src_width': 640, 'src_height': 480, 'mode': 'pad', 'width': 320, 'height': 200}))
 
-        self.assertEqual(['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x240'], c.parse_options(
+        self.assertEqual(['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x240'], c.parse_options(
             {'codec': 'doctest', 'src_width': 640, 'src_height': 480, 'width': 320}))
 
-        self.assertEqual(['-vcodec', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x240'], c.parse_options(
+        self.assertEqual(['-codec:v', 'doctest', '-pix_fmt', 'yuv420p', '-s', '320x240'], c.parse_options(
             {'codec': 'doctest', 'src_width': 640, 'src_height': 480, 'height': 240}))
 
-        self.assertEqual(['-acodec', 'aac', '-strict', 'experimental'],
+        self.assertEqual(['-codec:a', 'aac', '-strict', 'experimental'],
                          codecs.AacCodec().parse_options({'codec': 'aac'}))
         self.assertEqual(
-            ['-acodec', 'ac3'], codecs.Ac3Codec().parse_options({'codec': 'ac3'}))
+            ['-codec:a', 'ac3'], codecs.Ac3Codec().parse_options({'codec': 'ac3'}))
         self.assertEqual(
-            ['-acodec', 'copy'], codecs.AudioCopyCodec().parse_options({'codec': 'copy'}))
+            ['-codec:a', 'copy'], codecs.AudioCopyCodec().parse_options({'codec': 'copy'}))
         self.assertEqual(
             ['-an'], codecs.AudioNullCodec().parse_options({'codec': None}))
         self.assertEqual(
@@ -309,28 +309,28 @@ class TestFFMpeg(unittest.TestCase):
         self.assertEqual(
             ['-scodec', 'dvdsub'], codecs.DVDSub().parse_options({'codec': 'dvdsub'}))
         self.assertEqual(
-            ['-vcodec', 'mpeg4', '-pix_fmt', 'yuv420p'], codecs.DivxCodec().parse_options({'codec': 'divx'}))
+            ['-codec:v', 'mpeg4', '-pix_fmt', 'yuv420p'], codecs.DivxCodec().parse_options({'codec': 'divx'}))
         self.assertEqual(
-            ['-acodec', 'dts'], codecs.DtsCodec().parse_options({'codec': 'dts'}))
-        self.assertEqual(['-acodec', 'libfdk_aac'],
+            ['-codec:a', 'dts'], codecs.DtsCodec().parse_options({'codec': 'dts'}))
+        self.assertEqual(['-codec:a', 'libfdk_aac'],
                          codecs.FdkAacCodec().parse_options({'codec': 'libfdk_aac'}))
         self.assertEqual(
-            ['-acodec', 'flac'], codecs.FlacCodec().parse_options({'codec': 'flac'}))
+            ['-codec:a', 'flac'], codecs.FlacCodec().parse_options({'codec': 'flac'}))
         self.assertEqual(
-            ['-vcodec', 'flv', '-pix_fmt', 'yuv420p'], codecs.FlvCodec().parse_options({'codec': 'flv'}))
+            ['-codec:v', 'flv', '-pix_fmt', 'yuv420p'], codecs.FlvCodec().parse_options({'codec': 'flv'}))
         self.assertEqual(
-            ['-vcodec', 'h263', '-pix_fmt', 'yuv420p'], codecs.H263Codec().parse_options({'codec': 'h263'}))
+            ['-codec:v', 'h263', '-pix_fmt', 'yuv420p'], codecs.H263Codec().parse_options({'codec': 'h263'}))
         self.assertEqual(
-            ['-vcodec', 'libx264', '-pix_fmt', 'yuv420p'], codecs.H264Codec().parse_options({'codec': 'h264'}))
+            ['-codec:v', 'libx264', '-pix_fmt', 'yuv420p'], codecs.H264Codec().parse_options({'codec': 'h264'}))
         self.assertEqual(
             ['-scodec', 'mov_text'], codecs.MOVTextCodec().parse_options({'codec': 'mov_text'}))
         self.assertEqual(
-            ['-acodec', 'mp2'], codecs.Mp2Codec().parse_options({'codec': 'mp2'}))
-        self.assertEqual(['-acodec', 'libmp3lame'],
+            ['-codec:a', 'mp2'], codecs.Mp2Codec().parse_options({'codec': 'mp2'}))
+        self.assertEqual(['-codec:a', 'libmp3lame'],
                          codecs.Mp3Codec().parse_options({'codec': 'mp3'}))
-        self.assertEqual(['-vcodec', 'mpeg1video', '-pix_fmt', 'yuv420p'],
+        self.assertEqual(['-codec:v', 'mpeg1video', '-pix_fmt', 'yuv420p'],
                          codecs.Mpeg1Codec().parse_options({'codec': 'mpeg1'}))
-        self.assertEqual(['-vcodec', 'mpeg2video', '-pix_fmt', 'yuv420p'],
+        self.assertEqual(['-codec:v', 'mpeg2video', '-pix_fmt', 'yuv420p'],
                          codecs.Mpeg2Codec().parse_options({'codec': 'mpeg2'}))
         self.assertEqual(
             ['-scodec', 'ass'], codecs.SSA().parse_options({'codec': 'ass'}))
@@ -340,20 +340,20 @@ class TestFFMpeg(unittest.TestCase):
             ['-scodec', 'copy'], codecs.SubtitleCopyCodec().parse_options({'codec': 'copy'}))
         self.assertEqual(
             ['-sn'], codecs.SubtitleNullCodec().parse_options({'codec': None}))
-        self.assertEqual(['-vcodec', 'libtheora', '-pix_fmt', 'yuv420p'],
+        self.assertEqual(['-codec:v', 'libtheora', '-pix_fmt', 'yuv420p'],
                          codecs.TheoraCodec().parse_options({'codec': 'theora'}))
         self.assertEqual(
-            ['-vcodec', 'copy'], codecs.VideoCopyCodec().parse_options({'codec': 'copy'}))
+            ['-codec:v', 'copy'], codecs.VideoCopyCodec().parse_options({'codec': 'copy'}))
         self.assertEqual(
             ['-vn'], codecs.VideoNullCodec().parse_options({'codec': None}))
-        self.assertEqual(['-acodec', 'libvorbis'],
+        self.assertEqual(['-codec:a', 'libvorbis'],
                          codecs.VorbisCodec().parse_options({'codec': 'vorbis'}))
         self.assertEqual(
-            ['-vcodec', 'libvpx', '-pix_fmt', 'yuv420p'], codecs.Vp8Codec().parse_options({'codec': 'vp8'}))
+            ['-codec:v', 'libvpx', '-pix_fmt', 'yuv420p'], codecs.Vp8Codec().parse_options({'codec': 'vp8'}))
         self.assertEqual(
-            ['-acodec', 'wmav2'], codecs.WmaCodec().parse_options({'codec': 'wma'}))
+            ['-codec:a', 'wmav2'], codecs.WmaCodec().parse_options({'codec': 'wma'}))
         self.assertEqual(
-            ['-vcodec', 'msmpeg4', '-pix_fmt', 'yuv420p'], codecs.WmvCodec().parse_options({'codec': 'wmv'}))
+            ['-codec:v', 'msmpeg4', '-pix_fmt', 'yuv420p'], codecs.WmvCodec().parse_options({'codec': 'wmv'}))
 
     def test_converter(self):
         c = Converter(ffmpeg_path=FFMPEG_PATH, ffprobe_path=FFPROBE_PATH)
@@ -373,10 +373,10 @@ class TestFFMpeg(unittest.TestCase):
             ConverterError, c.parse_options, {'format': 'ogg', 'audio': {'codec': 'bogus'}})
 
         self.assertEqual(
-            ['-an', '-vcodec', 'libtheora', '-pix_fmt', 'yuv420p', '-r', '25.0', '-sn', '-f', 'ogg'],
+            ['-an', '-codec:v', 'libtheora', '-pix_fmt', 'yuv420p', '-r', '25.0', '-sn', '-f', 'ogg'],
             c.parse_options({'format': 'ogg', 'video': {'codec': 'theora', 'fps': 25}}))
         self.assertEqual(
-            ['-acodec', 'copy', '-vcodec', 'copy', '-sn', '-f', 'ogg'],
+            ['-codec:a', 'copy', '-codec:v', 'copy', '-sn', '-f', 'ogg'],
             c.parse_options({'format': 'ogg', 'audio': {'codec': 'copy'}, 'video': {'codec': 'copy'}, 'subtitle': {'codec': None}}))
 
         info = c.probe('test1.ogg')

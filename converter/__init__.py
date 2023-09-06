@@ -314,13 +314,13 @@ class Converter(object):
                         track_id = int(input_map[-1])
                         stream_selected = info.streams[track_id]
                     codec = stream_selected.codec
-                    codec_type = '-vcodec' if 'video' in stream_selected.type else '-acodec'
+                    codec_type = '-codec:v' if 'video' in stream_selected.type else '-codec:a'
                     optlist.extend([codec_type, 'copy'])
                 else:
                     input_map = ['0']
                     track_id = 0 if "video" in info.streams[0].type else 1
                     codec = info.streams[track_id].codec
-                    optlist.extend(['-vcodec', 'copy', '-acodec', 'copy'])
+                    optlist.extend(['-codec:v', 'copy', '-codec:a', 'copy'])
             except Exception:
                 warnings.warn('Could not determinate encoder', RuntimeWarning)
                 codec = ""

@@ -242,14 +242,14 @@ class VideoCodec(BaseCodec):
         h = safe['height']
         filters = safe['aspect_filters']
 
-        optlist = ['-vcodec', self.ffmpeg_codec_name]
+        optlist = ['-codec:v', self.ffmpeg_codec_name]
         optlist.extend(['-pix_fmt', str(safe['pix_fmt'] if 'pix_fmt' in safe else 'yuv420p')])
         if 'fps' in safe:
             optlist.extend(['-r', str(safe['fps'])])
         if 'keyframe_interval' in safe:
             optlist.extend(['-g', str(safe['keyframe_interval'])])
         if 'bitrate' in safe:
-            optlist.extend(['-vb', str(safe['bitrate']) + 'k'])  # FIXED
+            optlist.extend(['-b:v', str(safe['bitrate']) + 'k'])  # FIXED
         if 'max_bitrate' in safe:
             optlist.extend(['-maxrate', str(safe['max_bitrate']) + 'k', '-bufsize', str(safe['max_bitrate']) + 'k'])
         if w and h:
@@ -280,7 +280,7 @@ class VideoCopyCodec(VideoCodec):
     codec_name = 'copy'
 
     def parse_options(self, opt):
-        return ['-vcodec', 'copy']
+        return ['-codec:v', 'copy']
 
 
 class TheoraCodec(VideoCodec):
@@ -308,7 +308,7 @@ class TheoraCodec(VideoCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = []
         if 'quality' in safe:
-            optlist.extend(['-qscale:v', str(safe['quality'])])
+            optlist.extend(['-q:v', str(safe['quality'])])
         return optlist
 
 
@@ -418,7 +418,7 @@ class DivxCodec(VideoCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = []
         if 'quality' in safe:
-            optlist.extend(['-qscale:v', str(safe['quality'])])
+            optlist.extend(['-q:v', str(safe['quality'])])
         return optlist
 
 
@@ -451,7 +451,7 @@ class Vp8Codec(VideoCodec):
         if 'quality' in safe:
             optlist.extend(['-crf', str(safe['quality'])])
             if 'max_bitrate' in safe:
-                optlist.extend(['-vb', str(safe['max_bitrate']) + 'k'])
+                optlist.extend(['-b:v', str(safe['max_bitrate']) + 'k'])
         if 'threads' in safe:
             optlist.extend(['-threads', str(safe['threads'])])
         return optlist
@@ -509,7 +509,7 @@ class MpegCodec(VideoCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = []
         if 'quality' in safe:
-            optlist.extend(['-qscale:v', str(safe['quality'])])
+            optlist.extend(['-q:v', str(safe['quality'])])
         return optlist
 
 
@@ -550,5 +550,5 @@ class WmvCodec(VideoCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = []
         if 'quality' in safe:
-            optlist.extend(['-qscale:v', str(safe['quality'])])
+            optlist.extend(['-q:v', str(safe['quality'])])
         return optlist

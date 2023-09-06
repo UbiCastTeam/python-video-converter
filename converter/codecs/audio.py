@@ -47,11 +47,11 @@ class AudioCodec(BaseCodec):
 
         safe = self._codec_specific_parse_options(safe)
 
-        optlist = ['-acodec', self.ffmpeg_codec_name]
+        optlist = ['-codec:a', self.ffmpeg_codec_name]
         if 'channels' in safe:
             optlist.extend(['-ac', str(safe['channels'])])
         if 'bitrate' in safe:
-            optlist.extend(['-ab', str(safe['bitrate']) + 'k'])
+            optlist.extend(['-b:a', str(safe['bitrate']) + 'k'])
         if 'samplerate' in safe:
             optlist.extend(['-ar', str(safe['samplerate'])])
 
@@ -80,7 +80,7 @@ class AudioCopyCodec(AudioCodec):
     codec_name = 'copy'
 
     def parse_options(self, opt):
-        return ['-acodec', 'copy']
+        return ['-codec:a', 'copy']
 
 
 class VorbisCodec(AudioCodec):
@@ -100,7 +100,7 @@ class VorbisCodec(AudioCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = []
         if 'quality' in safe:
-            optlist.extend(['-qscale:a', str(safe['quality'])])
+            optlist.extend(['-q:a', str(safe['quality'])])
         return optlist
 
 
@@ -128,7 +128,7 @@ class AacCodec(AudioCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = list(self.aac_experimental_enable)
         if 'quality' in safe:
-            optlist.extend(['-qscale:a', str(safe['quality'])])
+            optlist.extend(['-q:a', str(safe['quality'])])
         return optlist
 
 
@@ -209,7 +209,7 @@ class Mp3Codec(AudioCodec):
     def _codec_specific_produce_ffmpeg_list(self, safe):
         optlist = []
         if 'quality' in safe:
-            optlist.extend(['-qscale:a', str(safe['quality'])])
+            optlist.extend(['-q:a', str(safe['quality'])])
         return optlist
 
 
