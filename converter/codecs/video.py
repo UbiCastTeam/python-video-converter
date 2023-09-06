@@ -15,6 +15,7 @@ class VideoCodec(BaseCodec):
       * codec (string) - video codec name
       * pix_fmt (string) - pixel format
       * bitrate (string) - stream bitrate
+      * min_bitrate (string) - minimum stream bitrate
       * max_bitrate (string) - maximum stream bitrate
       * fps (integer) - frames per second
       * keyframe_interval (integer) - keyframe interval
@@ -45,6 +46,7 @@ class VideoCodec(BaseCodec):
         'codec': str,
         'pix_fmt': str,
         'bitrate': int,
+        'min_bitrate': int,
         'max_bitrate': int,
         'fps': float,
         'keyframe_interval': int,
@@ -56,6 +58,7 @@ class VideoCodec(BaseCodec):
         'display_aspect_ratio': float,
         'sample_aspect_ratio': float,
         'rotate': str,
+        'threads': int,  # Threads count (no value to use recommended count)
     }
 
     formats_supported = [
@@ -175,6 +178,11 @@ class VideoCodec(BaseCodec):
             if br < 16 or br > 15000:
                 del safe['bitrate']
 
+        if 'min_bitrate' in safe:
+            mb = safe['min_bitrate']
+            if mb < 0 or mb > 15000:
+                del safe['min_bitrate']
+
         if 'max_bitrate' in safe:
             mb = safe['max_bitrate']
             if mb < 16 or mb > 15000:
@@ -184,6 +192,11 @@ class VideoCodec(BaseCodec):
             pix_fmt = safe['pix_fmt']
             if pix_fmt in self.formats_supported:
                 del safe['pix_fmt']
+
+        if 'threads' in safe:
+            t = safe['threads']
+            if t < 1:
+                del safe['threads']
 
         sar = safe.get('sample_aspect_ratio')
         rotate = safe.get('rotate')
@@ -250,6 +263,8 @@ class VideoCodec(BaseCodec):
             optlist.extend(['-g', str(safe['keyframe_interval'])])
         if 'bitrate' in safe:
             optlist.extend(['-b:v', str(safe['bitrate']) + 'k'])  # FIXED
+        if 'min_bitrate' in safe:
+            optlist.extend(['-minrate', str(safe['min_bitrate']) + 'k'])
         if 'max_bitrate' in safe:
             optlist.extend(['-maxrate', str(safe['max_bitrate']) + 'k', '-bufsize', str(safe['max_bitrate']) + 'k'])
         if w and h:
@@ -260,6 +275,9 @@ class VideoCodec(BaseCodec):
 
         if filters:
             optlist.extend(['-vf', filters])
+
+        if 'threads' in safe:
+            optlist.extend(['-threads', str(safe['threads'])])
 
         optlist.extend(self._codec_specific_produce_ffmpeg_list(safe))
         return optlist
@@ -429,21 +447,15 @@ class Vp8Codec(VideoCodec):
     ffmpeg_codec_name = 'libvpx'
     encoder_options = VideoCodec.encoder_options.copy()
     encoder_options.update({
-        'quality': int,  # quality, range:0(lossless)-63(worst)
-        # recommended: 10, http://slhck.info/video-encoding
-        'threads': int,  # threads number
-        # default: 1, recommended: number of real cores - 1
+        'quality': int,  # quality, range:4(lossless)-63(worst)
+        # recommended: 10, https://trac.ffmpeg.org/wiki/Encode/VP8
     })
 
     def _codec_specific_parse_options(self, safe):
         if 'quality' in safe:
             q = safe['quality']
-            if q < 0 or q > 63:
+            if q < 4 or q > 63:
                 del safe['quality']
-        if 'threads' in safe:
-            t = safe['threads']
-            if t < 1:
-                del safe['threads']
         return safe
 
     def _codec_specific_produce_ffmpeg_list(self, safe):
@@ -452,8 +464,33 @@ class Vp8Codec(VideoCodec):
             optlist.extend(['-crf', str(safe['quality'])])
             if 'max_bitrate' in safe:
                 optlist.extend(['-b:v', str(safe['max_bitrate']) + 'k'])
-        if 'threads' in safe:
-            optlist.extend(['-threads', str(safe['threads'])])
+        return optlist
+
+
+class Vp9Codec(VideoCodec):
+    """Google VP9 video codec."""
+
+    codec_name = 'vp9'
+    ffmpeg_codec_name = 'libvpx-vp9'
+    encoder_options = VideoCodec.encoder_options.copy()
+    encoder_options.update({
+        'quality': int,  # quality, range:0(lossless)-63(worst)
+        # recommended: 15-35, https://trac.ffmpeg.org/wiki/Encode/VP9
+    })
+
+    def _codec_specific_parse_options(self, safe):
+        if 'quality' in safe:
+            q = safe['quality']
+            if q < 0 or q > 63:
+                del safe['quality']
+        return safe
+
+    def _codec_specific_produce_ffmpeg_list(self, safe):
+        optlist = []
+        if 'quality' in safe:
+            optlist.extend(['-crf', str(safe['quality'])])
+            if 'max_bitrate' in safe:
+                optlist.extend(['-b:v', str(safe['max_bitrate']) + 'k'])
         return optlist
 
 
