@@ -325,7 +325,7 @@ class Converter(object):
                 warnings.warn('Could not determinate encoder', RuntimeWarning)
                 codec = ""
             if "h264" in codec:
-                optlist.insert(-4, "-vbsf")
+                optlist.insert(-4, "-bsf:v")
                 optlist.insert(-4, "h264_mp4toannexb")
             outfile = "%s/media%%05d.ts" % output_directory
             outputs_options.append(optlist)

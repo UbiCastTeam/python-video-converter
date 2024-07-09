@@ -618,7 +618,7 @@ class FFMpeg(object):
             if len(thumb) > 2 and thumb[2]:
                 cmds.extend(['-s', str(thumb[2])])
             cmds.extend([
-                '-f', 'image2', '-vframes', '1',
+                '-f', 'image2', '-frames:v', '1',
                 '-q:v', str(
                     FFMpeg.DEFAULT_JPEG_QUALITY if len(
                         thumb) < 4 else str(thumb[3])),
