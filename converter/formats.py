@@ -39,14 +39,10 @@ class BaseFormat(with_metaclass(MetaBaseFormat, object)):
         if 'format' not in safe or safe['format'] != self.format_name:
             raise ValueError('invalid Format format')
         optlist = ['-f', self.ffmpeg_format_name]
-        safe = self._format_specific_parse_options(safe)
-        optlist.extend(self._format_specific_produce_ffmpeg_list(safe))
+        optlist.extend(self._format_specific_parse_options(safe))
         return optlist
 
     def _format_specific_parse_options(self, safe):
-        return safe
-
-    def _format_specific_produce_ffmpeg_list(self, safe):
         return []
 
     def safe_options(self, opts):
@@ -121,6 +117,12 @@ class MovFormat(BaseFormat):
     format_options.update({
         'faststart': bool  # faststart mode
     })
+
+    def _format_specific_parse_options(self, safe):
+        optlist = []
+        if safe.get('faststart', False):
+            optlist.extend(['-movflags', 'faststart'])
+        return optlist
 
 
 class Mp4Format(BaseFormat):
