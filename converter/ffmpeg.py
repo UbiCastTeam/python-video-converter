@@ -637,7 +637,7 @@ class FFMpeg(object):
             raise FFMpegError('Error creating thumbnail.', details=stderr_data)
 
     def mix(
-        self, inputs, inputs_maps, output,
+        self, inputs, inputs_maps, output, faststart=True,
         stream_metadata_tags=None, copy_metadata_tags=False, duration=None
     ):
 
@@ -651,6 +651,8 @@ class FFMpeg(object):
         command_options = ['-codec', 'copy']
         if copy_metadata_tags:
             command_options.extend(['-movflags', 'use_metadata_tags'])
+        if faststart and (output.endswith('.mp4') or output.endswith('.mov')):
+            command_options.extend(['-movflags', 'faststart'])
         if duration:
             command_options.extend(['-t', str(round(duration, 3))])
 
