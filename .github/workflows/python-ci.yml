@@ -16,12 +16,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.9, 3.11]
+        python-version: [3.11, 3.13]
 
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install ffmpeg
@@ -30,14 +30,14 @@ jobs:
         sudo apt-get install -y ffmpeg
     - name: Install Python dependencies
       run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install flake8 vulture six
+        pip install --upgrade pip setuptools
+        pip install --no-cache-dir -e '.[dev]'
     - name: Lint code with Python ${{ matrix.python-version }}
       run: |
         flake8 .
     - name: Check for deadcode with Python ${{ matrix.python-version }}
       run: |
-        vulture --exclude docker/,submodules/ --min-confidence 90 .
+        vulture --min-confidence 90 converter
     - name: Run test with Python ${{ matrix.python-version }}
       run: |
-        python3 setup.py test
+        pytest --cov -- test/test.py

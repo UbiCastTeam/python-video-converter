@@ -1,0 +1,43 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=77.0"]
+
+[project]
+name = "video-converter"
+description = "Video Converter library."
+version = "2.3.0"
+authors = [{name = "UbiCast"}]
+license = "LGPL-3.0"
+license-files = ["LICENSE"]
+readme = "README.md"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Other Environment",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Utilities",
+]
+requires-python = ">=3.11"
+dependencies = [
+  "six",
+]
+
+[project.optional-dependencies]
+dev = [
+  "flake8",
+  "pytest",
+  "pytest-cov",
+  "vulture",
+]
+
+[project.urls]
+Repository = "https://github.com/UbiCastTeam/python-video-converter"
+
+[tool.setuptools]
+packages = ["converter", "converter.codecs"]
+include-package-data = false
+
+[tool.coverage.run]
+source_dirs = ["converter"]

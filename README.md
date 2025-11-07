@@ -41,7 +41,7 @@ There's a fair amount of documentation in `doc/` directory.
 To generate it from Sphinx sources, use:
 
 ``` sh
-python setup.py doc
+cd doc; make html; cd -
 ```
 
 and then visit `doc/_build/html/index.html`.
@@ -49,7 +49,7 @@ and then visit `doc/_build/html/index.html`.
 To run the automated tests:
 
 ``` sh
-python setup.py test
+pytest test/test.py
 ```
 
 The test suite assumes you already have the required `ffmpeg` and `ffprobe`
@@ -60,7 +60,7 @@ tools installed on your system.
 To install the package:
 
 ``` sh
-python setup.py install
+pip install .
 ```
 
 Note that this only installs the Python Video Converter library. The `ffmpeg`
