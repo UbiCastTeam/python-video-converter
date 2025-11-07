@@ -3,4 +3,5 @@
 /dist/
 /doc/_build/
 *.pyc
-
+__pycache__
+.coverage*
